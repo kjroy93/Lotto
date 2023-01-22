@@ -27,7 +27,7 @@ def numbers():
     numbers.extend([Nro1, Nro2, Nro3, Nro4, Nro5])
     return numbers
 
-def stars():
+def n_stars():
     stars = []
     Star_1 = int(input("Introduce la primera estrella: "))
     Star_2 = int(input("Introduce la segunda estrella: "))
@@ -107,7 +107,7 @@ while answer == 1:
     while new_draw != False:
         print("Este sorteo ya existe. Introduce otro número: ")
         draw = nd()
-        new_draw = draw_entry in set(draws['Sorteos'])
+        new_draw = draw in set(draws['Sorteos'])
         
     winners = numbers()
     duplicated = len(winners) != len(set(winners))
@@ -117,12 +117,12 @@ while answer == 1:
         winners = numbers()
         duplicated = len(winners) != len(set(winners))
 
-    stars = stars()
+    stars = n_stars()
     stars_duplicated = len(stars) != len(set(stars))
 
     while stars_duplicated == True:
         print("No puede existir dos veces la misma estrella en la misma serie. Por favor, introduce de nuevo los números ganadores")
-        stars = stars()
+        stars = n_stars()
         stars_duplicated = len(stars) != len(set(stars))
 
     df = pd.DataFrame({
@@ -153,13 +153,12 @@ while answer == 1:
     draws = draws.astype(df_clean)
     draws.to_csv('base_de_datos.csv', index=False)
     print("Base de datos actualizada")
-    draws
+    print(draws)
 
-    print("¿Deseas registrar una nueva entrada? Si o no")
+    print("¿Deseas registrar una nueva entrada? Escribe Si o No")
 
     answer = input()
 
     if answer == "Si":
         answer = 1
-    else:
-        break
+    answer = answer

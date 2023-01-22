@@ -1,2 +1,4 @@
-# Lotto-menu
-Intructions to upload the data. No web scrap
+# Euro Millions predictions
+¿Sabias que más del 70% de los individuos que juegan cualquier juego de azar, suelen basarse en datos esotericos? O incluso peor, utilizan combinaciones como el famoso 01-02-03-04-05 :/. Aunque matetimaticamente, tiene las mismas posibilidades de ganar que cualquier otra combinación, nunca ocurrirá. Esto pretende demostrarlo.
+Bien es cierto que ninguna máquina o código de computación es capaz de darte este tipo de predicciones. Ese no es el objetivo. Simplemente, con la ayuda de la estadistica y la probabilidad, y la capacidad de los ordenadores de generar números aleatorios, los encajará en criterios de valor previamente establecidos, basados en las reglas del propio juego y del azar. Este repositorio contiene el código que facilitará el trabajo de elegir combinaciones. Se encuentra basado en una sola regla. Cualquier número puede salir. Y tarde o temprano, todos saldran la misma la cantidad de veces.
+El peor intento es el que no se hace. Utilizar Python como herramienta de apoyo quizás suene ridiculo pero, ¿qué es el azar sino diversión y la ilusión de ganar? Lo que ayude a lograrlo, bienvenido

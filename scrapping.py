@@ -2,18 +2,18 @@
 El scrapping se realiza del año 2013 al 2024. Ajustable
 Solo se debe ajustar el año de inicio y fin"""
 
-startyear=2013
-lastyear=2023
-
 import pandas as pd
 
+STARTYEAR = 2013
+LASTYEAR = 2023
 
-def redimensionado(dfs):
+
+def redimensionado(dataframe):
     """Función para limpieza de data scrapeada.
     Recibe df con clumnas con numeros del 0 al 11,
     Se renombran del 0 al 9.
     Se elimina las dos primeras lineas ya que no cuentan con información"""
-    return dfs[0].rename(columns={
+    return dataframe[0].rename(columns={
         0:"SEM.",
         1:"SORTEO",
         2:"DIA",
@@ -27,7 +27,7 @@ def redimensionado(dfs):
     }).drop([0,1])
 
 sorteos= pd.DataFrame()
-for year in range(startyear,lastyear+1):                                                                                                              
+for year in range(STARTYEAR,LASTYEAR+1):                                                                                                              
     url = f'https://www.euromillones.com.es/historico/resultados-euromillones-{year}.html'
     dfs = pd.read_html(url)
     dfs = redimensionado(dfs)

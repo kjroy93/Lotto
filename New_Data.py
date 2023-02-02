@@ -36,7 +36,7 @@ def n_stars():
 
 def audit_db(date, db, future):
     audit = []
-    past_dates = date in set(draws['Dates'])
+    past_dates = date in set(db['Dates'])
     audit.append(past_dates)
     future_dates = date in set(future['Dates'])
     audit.append(future_dates)

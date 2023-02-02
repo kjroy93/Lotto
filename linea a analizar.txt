@@ -1,1 +1,0 @@
-pd.DataFrame(patata, columns=[[patata[0].iloc[i] for i in range(8)]])

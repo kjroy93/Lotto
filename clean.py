@@ -63,10 +63,10 @@ df_clean = {
 }
 draws_df = draws_df.astype(df_clean)
 draws_df = pd.concat([result, draws_df], axis=1, join='inner')
-draws_df
 
-draws_df.dtypes
+print('¡Done!')
+print(draws_df)
+print(draws_df.describe())
+print(draws_df.dtypes)
 
-draws_df.describe()
-
-draws_df.to_csv('base_de_datos.csv', index=False)
+draws_df.to_parquet('db.parquet', index=False)

@@ -3,7 +3,7 @@ import time
 import pandas as pd
 import calendar
 
-draws = pd.read_parquet('db.parquet')
+draws = pd.read_csv('base_de_datos.csv', dtype={'Sorteos': "string"}, parse_dates=['Dates'])
 
 def new_date():
     year = int(input("Introduce el año en curso del nuevo sorteo: "))
@@ -151,7 +151,7 @@ while answer == 1:
     }
 
     draws = draws.astype(df_clean)
-    draws.to_parquet('db.parquet', index=False)
+    draws.to_csv('base_de_datos.csv', index=False)
     print("Base de datos actualizada")
     print(draws)
 

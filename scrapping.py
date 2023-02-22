@@ -58,5 +58,5 @@ def get_data():
     sorteos.drop(columns=[10,11],inplace=True)
     sorteos.dropna(inplace=True)
     sorteos.reset_index(inplace=True)
-    sorteos.to_parquet("db.parquet",index=False)
+#     sorteos.to_csv("sorteos.csv",index=False)
     return sorteos

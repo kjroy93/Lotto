@@ -69,4 +69,4 @@ draws_df.dtypes
 
 draws_df.describe()
 
-draws_df.to_csv('base_de_datos.csv', index=False)
+draws_df.to_parquet('db.parquet', index=False)

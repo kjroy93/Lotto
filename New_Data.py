@@ -151,7 +151,7 @@ while answer == 1:
     }
 
     draws = draws.astype(df_clean)
-    draws.to_csv('base_de_datos.csv', index=False)
+    draws.to_parquet('db.parquet', index=False)
     print("Base de datos actualizada")
     print(draws)
 

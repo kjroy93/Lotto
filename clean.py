@@ -12,6 +12,8 @@ def days_sum(day, change):
     date = day + change
     return date
 
+print("Limpiando base de datos de origen, Por favor, espere")
+
 sh = client.open_by_key('1nJmpNVlyePB09EnMFET_CAsLccu6hs-IP3fsRBG0UXQ')
 worksheet = sh.get_worksheet(2)
 data = worksheet.get_all_values()
@@ -63,10 +65,15 @@ df_clean = {
 }
 draws_df = draws_df.astype(df_clean)
 draws_df = pd.concat([result, draws_df], axis=1, join='inner')
-draws_df
 
-draws_df.dtypes
+print("¡Done!")
 
-draws_df.describe()
+print("Creando base de datos actualizada")
+
+print(draws_df)
+
+print(draws_df.dtypes)
+
+print(draws_df.describe())
 
 draws_df.to_parquet('db.parquet', index=False)

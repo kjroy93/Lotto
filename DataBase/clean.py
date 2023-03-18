@@ -76,4 +76,4 @@ print(draws_df.dtypes)
 
 print(draws_df.describe())
 
-draws_df.to_parquet('db.parquet', index = False)
+draws_df.to_parquet('C:\Proyectos\Loteria\DataBase\db.parquet', index = False)

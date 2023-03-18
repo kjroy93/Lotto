@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from oauth2client.service_account import ServiceAccountCredentials
 scope = ["https://spreadsheets.google.com/feeds",'https://www.googleapis.com/auth/spreadsheets',"https://www.googleapis.com/auth/drive.file","https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("C:\Proyectos\Loteria\.gitignore\creds.json", scope)
 client = gspread.authorize(creds)
 
 def days_sum(day, change):
@@ -51,7 +51,7 @@ df = pd.DataFrame(list(map(datetime.fromtimestamp, dates)))
 df1 = pd.DataFrame(list(map(datetime.fromtimestamp, dates1)))
 frames = [df, df1]
 result = pd.concat(frames, ignore_index = True)
-result = result.rename(columns = {0:'Dates'})
+result = result.rename(columns = {0: 'Dates'})
 
 df_clean = {
     'Sorteos': "int64",

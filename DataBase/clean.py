@@ -50,11 +50,11 @@ for i in range(379, len(draws_df) + 1):
 df = pd.DataFrame(list(map(datetime.fromtimestamp, dates)))
 df1 = pd.DataFrame(list(map(datetime.fromtimestamp, dates1)))
 frames = [df, df1]
-result = pd.concat(frames, ignore_index=True)
-result = result.rename(columns={0:'Dates'})
+result = pd.concat(frames, ignore_index = True)
+result = result.rename(columns = {0:'Dates'})
 
 df_clean = {
-    'Sorteos': "string",
+    'Sorteos': "int64",
     'Nro1': "int64",
     'Nro2': "int64",
     'Nro3': "int64",
@@ -64,7 +64,7 @@ df_clean = {
     'Star_2': "int64"
 }
 draws_df = draws_df.astype(df_clean)
-draws_df = pd.concat([result, draws_df], axis=1, join='inner')
+draws_df = pd.concat([result, draws_df], axis = 1, join = 'inner')
 
 print("¡Done!")
 
@@ -76,4 +76,4 @@ print(draws_df.dtypes)
 
 print(draws_df.describe())
 
-draws_df.to_parquet('db.parquet', index=False)
+draws_df.to_parquet('db.parquet', index = False)

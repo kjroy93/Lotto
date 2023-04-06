@@ -1,12 +1,8 @@
 # Functions
-
-import pandas as pd
-import numpy as np
 import pandas as pd
 import numpy as np
 from collections import Counter
 from decimal import Decimal, getcontext
-import data_functions
 getcontext().prec = 5
 np.set_printoptions(precision=5)
 
@@ -105,7 +101,6 @@ def get_rotations(database, hits, numbers, data_average, is_star=False):
         # approx rotations
         aprox_rotation = natural_rotation(database, hits, numbers, data_average, start, end, is_star=is_star, aprox=True)
         aprox_rotations.append(aprox_rotation)
-        
     return tuple(aprox_rotations + exact_rotations)
 
 def combination_count(database, numbers, df_with_numbers):
@@ -126,7 +121,6 @@ def combination_count(database, numbers, df_with_numbers):
         low_high.append((count.get(True,0), count.get(False,0)))
         count = Counter(make_list(list_of_numbers, count_type='odd_even'))
         odd_even.append((count.get(True,0), count.get(False,0)))
-        
     return low_high, odd_even
 
 def combination_df(database, low_high_counts, odd_even_counts):
@@ -149,16 +143,14 @@ def combination_df(database, low_high_counts, odd_even_counts):
     
     low_high = clean_df(pd.DataFrame.from_dict(low_high, orient='index'), columns_id, 'L/H')
     odd_even = clean_df(pd.DataFrame.from_dict(odd_even, orient='index'), columns_id, 'O/E')
-    
     return low_high, odd_even
 
-def count_combinations(df, columns, combinations, name):
+def count_100_combinations(df, columns, combinations, name):
     count_dic = {i: {key: 0 for key in combinations} for i in range(1, len(df) - 99)}
     columns_id = ['3/2', '2/3', '1/4', '4/1', '0/5', '5/0']
     for i, _ in enumerate(range(1, len(df) - 99)):
         df_slice = df.iloc[i:i+100]
         counts = [df_slice[(df_slice[columns[0]] == combination[0]) & (df_slice[columns[1]] == combination[1])][columns[0]].count() for combination in combinations]
         count_dic[i+1] = dict(zip(combinations, counts))
-        
     df = clean_df(pd.DataFrame.from_dict(count_dic, orient='index'), columns_id, name)
     return df

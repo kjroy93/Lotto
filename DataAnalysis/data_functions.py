@@ -1,6 +1,7 @@
 # Functions
 import pandas as pd
 import numpy as np
+import decimal
 from collections import Counter
 from decimal import Decimal, getcontext
 getcontext().prec = 5
@@ -92,7 +93,10 @@ def natural_rotation(database, hits, numbers, data_average, index_start, index_e
 def get_rotations(database, hits, numbers, data_average, is_star=False):
     aprox_rotations = []
     exact_rotations = []
-    index_ranges = [(1, 25, '_low'), (26, 50, '_high')]
+    if is_star:
+        index_ranges = [(1,6,'_low'), (7, 12, '_high')]
+    else:
+        index_ranges = [(1, 25, '_low'), (26, 50, '_high')]
     
     for start, end, suffix in index_ranges:
         # exact rotations

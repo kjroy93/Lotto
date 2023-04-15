@@ -6,7 +6,7 @@ import datetime
 import data_functions
 import pandas as pd
 import numpy as np
-from scrapping import get_data
+from scrapping import euro_scraping
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from itertools import combinations

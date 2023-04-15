@@ -158,3 +158,33 @@ def count_100_combinations(df, columns, combinations, name):
         count_dic[i+1] = dict(zip(combinations, counts))
     df = clean_df(pd.DataFrame.from_dict(count_dic, orient='index'), columns_id, name)
     return df
+
+def games_7(column):
+    if column == 0 or column == 1:
+        return 1
+    elif column == 2:
+        return 0.75
+    elif column == 3:
+        return 0.65
+    elif column == 4:
+        return 0.55
+    elif column == 5:
+        return 0.45
+    elif column == 6:
+        return 0.35
+    elif column == 7:
+        return 0.25
+
+def games_12(column):
+    if column == 8:
+        return 0.65
+    elif column == 9:
+        return 0.55
+    elif column == 10:
+        return 0.45
+    elif column == 11:
+        return 0.35
+    elif column == 12:
+        return 0.25
+    else:
+        return 0

@@ -6,7 +6,7 @@ from time import gmtime
 def euro_scraping():
     """Return all euromillones data"""
     
-    assert(requests.get("https://www.euromillones.com.es/").status_code == 200, 'Hay un problema con la página de euromillones')
+    assert requests.get("https://www.euromillones.com.es/").status_code == 200, 'Hay un problema con la página de euromillones'
     
     
     def rename_sorteo(df:pd.DataFrame):
@@ -40,5 +40,5 @@ def euro_scraping():
                 sorteo_euro_millones = pd.concat([sorteo_euro_millones,new_data.dropna()],ignore_index=True)
         except:
             print(f'Error en el año: {age}')
-    assert(not sorteo_euro_millones.empty, "El dataframe no ha sido llenado")
+    assert not sorteo_euro_millones.empty, "El dataframe no ha sido llenado"
     return sorteo_euro_millones

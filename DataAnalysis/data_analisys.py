@@ -13,10 +13,8 @@ from itertools import combinations
 getcontext().prec = 5
 np.set_printoptions(precision=5)
 
-def data_analisys():
+def data_analisys(db):
     # Load the data base and obtain the first DataFrame
-    db = pd.read_parquet('C:\Proyectos\Loteria\DataBase\db.parquet')
-    db_resultados = pd.read_parquet('C:\Proyectos\Loteria\DataBase\db.parquet')
     winning_numbers = db.iloc[:, 2:7]
     winning_stars = db.iloc[:, 7:9]
     total_numbers = np.arange(1,51)

@@ -240,7 +240,6 @@ def analisys(db):
     position_criteria = pd.DataFrame.from_dict(position_criteria, orient='index', columns=['position_criteria'])
 
     df_numbers = pd.concat([year_criteria, rotation_criteria, group_criteria, position_criteria], axis=1)
-    print(df_numbers)
     df_numbers['evaluation'] = df_numbers.apply(lambda row: row['year_criteria'] + row['rotation_criteria'] + row['group_criteria'] + row['position_criteria'], axis=1)
     tomorrow_numbers = df_numbers[['evaluation']]
     tomorrow_numbers = tomorrow_numbers.sort_values(by='evaluation', ascending=False)

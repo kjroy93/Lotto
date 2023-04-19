@@ -1,0 +1,66 @@
+import sys
+sys.path.append('C:\Proyectos\Loteria\Database')
+import time
+import pandas as pd
+from datetime import datetime
+from scrapping import euro_scraping
+
+def days_sum(day, change):
+    date = day + change
+    return date
+
+def clean_df(df):
+    df_clean = {
+    'Sorteo': "int64",
+    'Nro1': "int64",
+    'Nro2': "int64",
+    'Nro3': "int64",
+    'Nro4': "int64",
+    'Nro5': "int64",
+    'Star_1': "int64",
+    'Star_2': "int64"
+    }
+    df = df.astype(df_clean)
+    return df
+
+def structure(data):
+    data.drop('Dates', axis=1, inplace=True)
+    data = data.reindex(columns=['Sorteo', 'Nro1', 'Nro2', 'Nro3', 'Nro4', 'Nro5', 'Star_1', 'Star_2'])
+    data['Sorteo'] = range(1,len(data)+1)
+    update_dict = {'Nro1': 3, 'Nro2': 31, 'Nro3': 41, 'Nro4': 48, 'Nro5': 50, 'Star_1': 8, 'Star_2': 11}
+    data.loc[1088, update_dict.keys()] = update_dict.values()
+    data = clean_df(data)
+    data.iloc[:, 1:6] = data.iloc[:, 1:6].apply(lambda x: pd.Series(sorted(x)), axis=1)
+    data.iloc[:, 6:8] = data.iloc[:, 6:8].apply(lambda x: pd.Series(sorted(x)), axis=1)
+
+    entry_point = time.mktime((2004, 2, 6, 0, 0, 0, 0, 0, 0)) # reference for math - first Friday of February 2004
+    Tuesday = time.mktime((2004, 2, 10, 0, 0, 0, 0, 0, 0)) # reference for math with four days of difference
+    first_draw = time.mktime((2004, 2, 13, 0, 0, 0, 0, 0, 0)) # this is the first draws of Euro Millions
+    change_draw = time.mktime((2011, 5, 6, 0, 0, 0, 0, 0, 0)) # this is the Last draw of the old rule: one draw per week
+    next_week = first_draw - entry_point
+    next_Tuesday = Tuesday - entry_point
+    Tuesday_Friday = first_draw - Tuesday
+
+    dates = []
+    dates_1 = []
+
+    for i in range(378):
+        entry_point = days_sum(entry_point, next_week)
+        dates.append(entry_point)
+
+    for i in range(379,len(data)+1):
+        if i % 2:
+            change_draw = days_sum(change_draw, next_Tuesday)
+        else:
+            change_draw = days_sum(change_draw, Tuesday_Friday)
+        dates_1.append(change_draw)
+
+    df = pd.DataFrame(list(map(datetime.fromtimestamp, dates)))
+    df1 = pd.DataFrame(list(map(datetime.fromtimestamp, dates_1)))
+    frames = [df, df1]
+    result = pd.concat(frames, ignore_index = True)
+    result = result.rename(columns = {0: 'Dates'})
+    database = pd.concat([result, data], axis = 1, join = 'inner')
+    database['Dates'] = database['Dates'].dt.floor('d')
+
+    return database

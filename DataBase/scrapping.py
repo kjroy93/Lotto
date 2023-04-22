@@ -1,7 +1,10 @@
+"""Scrapping functions"""
+
+from time import gmtime
+
 import pandas as pd
 import requests
 
-from time import gmtime
 
 def euro_scraping():
     """Return all euromillones data"""

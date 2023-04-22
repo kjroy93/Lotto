@@ -1,9 +1,11 @@
-# Functions
-import pandas as pd
-import numpy as np
-import decimal
+"""Function with data"""
+
 from collections import Counter
 from decimal import Decimal, getcontext
+
+import numpy as np
+import pandas as pd
+
 getcontext().prec = 5
 np.set_printoptions(precision=5)
 

@@ -21,7 +21,6 @@ def clean_df(df, columns_id, name):
 
 def count_skips(df, list_numbers):
     counts = {str(key): 0 for key in list_numbers}
-    df_len = len(df)
     for col in range(df.shape[1]):
         counter = 0
         for i in df.iloc[::-1, col]:

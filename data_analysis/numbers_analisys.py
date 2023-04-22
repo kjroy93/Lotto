@@ -1,7 +1,3 @@
-# Libraries
-import sys
-sys.path.append('C:\Proyectos\Loteria\DataBase')
-sys.path.append('C:\Proyectos\Loteria\DataAnalysis')
 import datetime
 import data_functions
 import pandas as pd
@@ -71,15 +67,13 @@ def analisys(db):
     last_12 = [counter_12.get(i,0) for i in skips]
     skips_7_12 = pd.DataFrame({'7': last_7, '12': last_12})
 
-    groups = [list(range(i,i+10)) for i in range(1,51,10)]
-    group_names = [tuple(range(i,i+10)) for i in range(1,51,10)]
-    results = {i: {group_name: sum([1 for num in row if num in group]) for group_name, group in zip(group_names, groups)} for i, row in winning_numbers.iterrows()}
-    results_df = pd.DataFrame.from_dict(results, orient='index')
-    results_df.columns = [f'{i}_to_{i+9}' for i in range(1,51,10)]
-    future_sg_10 = results_df.iloc[-9:]
-    future_sg_5 = results_df.iloc[-4:]
-    future_groups_df = pd.DataFrame({'10_games': (future_sg_10 > 0).sum(), '5_games': (future_sg_5 > 0).sum()}).T
-
+    groups = np.arange(1, 51, 10)
+    group_names = [tuple(range(i, i + 10)) for i in groups]
+    results_list = [np.sum(np.isin(row, group_names), axis=0) for row in winning_numbers.values]
+    results_df = pd.DataFrame(results_list, columns=[f'{i}_to_{i+9}' for i in groups])
+    future_sg_10 = (results_df.iloc[-9:] > 0).sum()
+    future_sg_5 = (results_df.iloc[-4:] > 0).sum()
+    future_groups_df = pd.DataFrame({'10_games': future_sg_10, '5_games': future_sg_5}).T
 
     last_year = db.Dates.iloc[-1]
     current_year = last_year.year

@@ -75,17 +75,15 @@ def analisys(db):
     group_names = [tuple(range(i,i+10)) for i in range(1,51,10)]
     results = {i: {group_name: sum([1 for num in row if num in group]) for group_name, group in zip(group_names, groups)} for i, row in winning_numbers.iterrows()}
     results_df = pd.DataFrame.from_dict(results, orient='index')
-    results_df.columns = ['{}_to_{}'.format(i,i+9) for i in range(1,51,10)]
-    sg_10 = results_df.iloc[-10:]
-    sg_5 = results_df.iloc[-5:]
-    groups_df = pd.DataFrame({'10_games': (sg_10 > 0).sum(), '5_games': (sg_5 > 0).sum()}).T
+    results_df.columns = [f'{i}_to_{i+9}' for i in range(1,51,10)]
     future_sg_10 = results_df.iloc[-9:]
     future_sg_5 = results_df.iloc[-4:]
     future_groups_df = pd.DataFrame({'10_games': (future_sg_10 > 0).sum(), '5_games': (future_sg_5 > 0).sum()}).T
 
-    last_year = db['Dates'].iloc[-1]
+
+    last_year = db.Dates.iloc[-1]
     current_year = last_year.year
-    year_info = numbers_year_history.loc[['Median', 'Average', current_year], :50]
+    year_info = numbers_year_history.loc[['Median', 'Average', db.Dates.iloc[-1]], :50]
     year_criteria = {key: [] for key in total_numbers}
     df_median = year_info.loc['Median']
     df_average = year_info.loc['Average']
@@ -153,22 +151,13 @@ def analisys(db):
 
     future_groups_df.columns = [1,2,3,4,5]
 
-    gp10 = {}
-    for column, gp in future_groups_df.loc['10_games'].items():
-        if gp >= 0 and gp <= 4:
-            gp10[tuple(range(1 + 10*(column-1), 11 + 10*(column-1)))] = 1
-        elif gp == 5:
-            gp10[tuple(range(1 + 10*(column-1), 11 + 10*(column-1)))] = 0.70
-        elif gp == 6:
-            gp10[tuple(range(1 + 10*(column-1), 11 + 10*(column-1)))] = 0.675
-        elif gp == 7:
-            gp10[tuple(range(1 + 10*(column-1), 11 + 10*(column-1)))] = 0.650
-        elif gp == 8:
-            gp10[tuple(range(1 + 10*(column-1), 11 + 10*(column-1)))] = 0.625
-        elif gp == 9:
-            gp10[tuple(range(1 + 10*(column-1), 11 + 10*(column-1)))] = 0.6
-        elif gp == 10:
-            gp10[tuple(range(1 + 10*(column-1), 11 + 10*(column-1)))] = 0.5
+    gp10values= {0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 0.70, 6: 0.675, 7: 0.650, 8: 0.625, 9: 0.6, 10: 0.5}
+
+    gp10 = {tuple(range(1 + 10*(column-1), 11 + 10*(column-1))) : gp10values[gp] for column, gp in future_groups_df.loc['10_games'].items()}
+
+    #With for loop:
+    #for column, gp in future_groups_df.loc['10_games'].items()
+    #    gp10[tuple(range(1 + 10*(column-1), 11 + 10*(column-1)))] = gp10values[gp]
 
     gp10_df = pd.DataFrame.from_dict(gp10, orient='index').T
     gp10_df.columns = ['{}_to_{}'.format(i,i+9) for i in range(1,51,10)]

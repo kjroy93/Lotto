@@ -1,9 +1,10 @@
-import sys
-sys.path.append('C:\Proyectos\Loteria\Database')
+"""file to clean the database"""
+
 import time
-import pandas as pd
 from datetime import datetime
-from scrapping import euro_scraping
+
+import pandas as pd
+
 
 def days_sum(day, change):
     date = day + change
@@ -34,12 +35,12 @@ def structure(data):
     data.iloc[:, 6:8] = data.iloc[:, 6:8].apply(lambda x: pd.Series(sorted(x)), axis=1)
 
     entry_point = time.mktime((2004, 2, 6, 0, 0, 0, 0, 0, 0)) # reference for math - first Friday of February 2004
-    Tuesday = time.mktime((2004, 2, 10, 0, 0, 0, 0, 0, 0)) # reference for math with four days of difference
+    tuesday = time.mktime((2004, 2, 10, 0, 0, 0, 0, 0, 0)) # reference for math with four days of difference
     first_draw = time.mktime((2004, 2, 13, 0, 0, 0, 0, 0, 0)) # this is the first draws of Euro Millions
     change_draw = time.mktime((2011, 5, 6, 0, 0, 0, 0, 0, 0)) # this is the Last draw of the old rule: one draw per week
     next_week = first_draw - entry_point
-    next_Tuesday = Tuesday - entry_point
-    Tuesday_Friday = first_draw - Tuesday
+    next_tuesday = tuesday - entry_point
+    tuesday_friday = first_draw - tuesday
 
     dates = []
     dates_1 = []
@@ -50,16 +51,16 @@ def structure(data):
 
     for i in range(379,len(data)+1):
         if i % 2:
-            change_draw = days_sum(change_draw, next_Tuesday)
+            change_draw = days_sum(change_draw, next_tuesday)
         else:
-            change_draw = days_sum(change_draw, Tuesday_Friday)
+            change_draw = days_sum(change_draw, tuesday_friday)
         dates_1.append(change_draw)
 
     df = pd.DataFrame(list(map(datetime.fromtimestamp, dates)))
     df1 = pd.DataFrame(list(map(datetime.fromtimestamp, dates_1)))
-    frames = [df, df1]
-    result = pd.concat(frames, ignore_index = True)
-    result = result.rename(columns = {0: 'Dates'})
+    
+    result = pd.concat([df, df1], ignore_index = True) \
+                            .rename(columns = {0: 'Dates'})
     database = pd.concat([result, data], axis = 1, join = 'inner')
     database['Dates'] = database['Dates'].dt.floor('d')
 

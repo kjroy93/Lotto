@@ -7,6 +7,10 @@ from decimal import Decimal, getcontext
 getcontext().prec = 5
 np.set_printoptions(precision=5)
 
+def draw_generator(lenght):
+    for i in range(12,lenght):
+        yield i
+
 def clean_df(df, columns_id, name):
     df.columns = columns_id
     df.columns.name = name
@@ -14,15 +18,16 @@ def clean_df(df, columns_id, name):
     return df
 
 def count_skips(df, list_numbers):
-    counts = {key: 0 for key in list_numbers}
-    for columns in df:
+    counts = {str(key): 0 for key in list_numbers}
+    df_len = len(df)
+    for col in range(df.shape[1]):
         counter = 0
-        for i in reversed(df[columns]):
+        for i in df.iloc[::-1, col]:
             if not i:
                 counter += 1
             else:
-                counts[columns] = counter
-                break       
+                counts[str(col+1)] = counter
+                break
     return counts
 
 def max_output(df):
@@ -43,14 +48,11 @@ def year_hits(database, df_with_numbers, numbers_quantity):
     year_history = pd.DataFrame(year_numbers, columns=['Year', 'Number'])
     year_history = year_history.apply(count_hits, axis=1)
     year_history = year_history.pivot_table(index='Year', columns='Number', values='Count', fill_value=0)
-    return year_history
-
-def get_hits(database, df_with_numbers, numbers_quantity):
-    hits = year_hits(database, df_with_numbers, numbers_quantity).sum().reset_index()
-    hits = hits.rename(columns = {'Number': 'Numbers', 'Count': 'Hits'}).set_index('Numbers').T
-    hits = hits.iloc[0].rename('Hits').to_frame()
-    hits.index.name = None
-    return hits.T
+    total_hits = year_history.sum().reset_index()
+    total_hits = total_hits.rename(columns = {'Number': 'Numbers', 'Count': 'Hits'}).set_index('Numbers').T
+    total_hits = total_hits.iloc[0].rename('Hits').to_frame()
+    total_hits.index.name = None
+    return year_history, total_hits.T
 
 def total_average_hits(database, hits, numbers, is_star=False, aprox=False):
     divide = 2 if is_star else 5

@@ -36,24 +36,34 @@ def max_output(df):
     max_numbers = df.sort_values(by=df.columns[0], ascending=False)
     return max_numbers
 
-def year_hits(database, df_with_numbers, numbers_quantity):
+def count_hits(df_with_numbers, db_year, year_number):
+    year, number = year_number
+    filtered = df_with_numbers.loc[(db_year == year) & (df_with_numbers == number).any(axis=1), :]
+    count = filtered.eq(number).sum().sum()
+    return int(count)
+
+def year_hits(database, df_with_numbers, numbers_quantity, count_hits_func):
     db_year = database['Dates'].dt.year
+
+    year_history = np.zeros((len(numbers_quantity), db_year.max()-db_year.min()+1))
     
-    def count_hits(year_number):
-        year, number = year_number
-        filtered = df_with_numbers.loc[(db_year == year) & (df_with_numbers == number).any(axis=1), :]
-        count = filtered.eq(number).sum().sum()
-        return pd.Series({'Year': year, 'Number': number, 'Count': int(count)})
-    
-    year_numbers = [(y, n) for y in range(db_year.min(), db_year.max()+1) for n in numbers_quantity]
-    year_history = pd.DataFrame(year_numbers, columns=['Year', 'Number'])
-    year_history = year_history.apply(count_hits, axis=1)
-    year_history = year_history.pivot_table(index='Year', columns='Number', values='Count', fill_value=0)
-    total_hits = year_history.sum().reset_index()
-    total_hits = total_hits.rename(columns = {'Number': 'Numbers', 'Count': 'Hits'}).set_index('Numbers').T
-    total_hits = total_hits.iloc[0].rename('Hits').to_frame()
+    for i, number in enumerate(numbers_quantity):
+        for j, year in enumerate(range(db_year.min(), db_year.max()+1)):
+            year_history[i, j] = count_hits_func(df_with_numbers, db_year, (year, number))
+
+    year_history = pd.DataFrame(year_history.T, columns=numbers_quantity, index=np.arange(db_year.min(), db_year.max()+1))
+    total_hits = year_history.sum(axis=0).to_frame().rename(columns={0: 'Hits'}).T
     total_hits.index.name = None
-    return year_history, total_hits.T
+    total_hits = total_hits.astype('int32')
+    
+    return year_history, total_hits
+
+def average_hits(database, hits_data, numbers, is_star=False):
+    divide = 5 if not is_star else 2
+    average = round(hits_data.iloc[0][numbers] / len(database) / divide, 6)
+    result = pd.DataFrame({'Average_Hits': average})
+    result.index.name = 'Numbers/Stars'
+    return result.T
 
 def total_average_hits(database, hits, numbers, is_star=False, aprox=False):
     divide = 2 if is_star else 5
@@ -69,27 +79,10 @@ def minimal_hits(database, hits, numbers, average, is_star=False, aprox=False):
     min_hits = total_average_hits(database, hits, numbers, is_star, aprox)
     return min_hits * Decimal(int(hits.iloc[0, 0])) / Decimal(float(average.iloc[0, 0]))
 
-def average_hits(database, hits_data, numbers, is_star=False):
-    divide = 2 if is_star else 5
-    hits_by_num = hits_data.apply(lambda hits: hits / len(database) / divide)
-    hits_by_num = hits_by_num.iloc[0].rename('Average').to_frame()
-    hits_by_num.index.name = None
-    averages = []
-    
-    for num in numbers:
-        avg = hits_by_num.loc[num]['Average'].sum()
-        averages.append(round(avg, 6))
-        
-    result = pd.DataFrame({'Numbers/Stars': numbers, 'Average_Hits': averages})
-    result = result.T
-    result.columns = result.iloc[0].astype(int)
-    result = result[1:]
-    return result
-
 def natural_rotation(database, hits, numbers, data_average, index_start, index_end, is_star=False, aprox=False):
-    average = total_average_hits(database, hits, numbers, is_star, aprox)
+    average = total_average_hits(database, hits, numbers, is_star=is_star, aprox=aprox)
     m_hits = minimal_hits(database, hits, numbers, data_average, is_star, aprox)
-    rotation = pd.DataFrame({'Hits': hits.iloc[0], 'Average_Numbers': data_average.iloc[0], 'Average': average, 'Hits_Needed': m_hits}, index = range(index_start, index_end + 1))
+    rotation = pd.DataFrame({'Hits': hits.iloc[0], 'Average_Numbers': data_average.iloc[0], 'Average': average, 'Hits_Needed': m_hits}, index=range(index_start, index_end + 1))
     rotation['Difference'] = rotation['Hits'] - rotation['Hits_Needed']
     return rotation
 
@@ -163,31 +156,9 @@ def count_100_combinations(df, columns, combinations, name):
     return df
 
 def games_7(column):
-    if column == 0 or column == 1:
-        return 1
-    elif column == 2:
-        return 0.75
-    elif column == 3:
-        return 0.65
-    elif column == 4:
-        return 0.55
-    elif column == 5:
-        return 0.45
-    elif column == 6:
-        return 0.35
-    elif column == 7:
-        return 0.25
+    games_dict = {0: 1, 1: 1, 2: 0.75, 3: 0.65, 4: 0.55, 5: 0.45, 6: 0.35, 7: 0.25}
+    return games_dict.get(column, 0)
 
 def games_12(column):
-    if column == 8:
-        return 0.65
-    elif column == 9:
-        return 0.55
-    elif column == 10:
-        return 0.45
-    elif column == 11:
-        return 0.35
-    elif column == 12:
-        return 0.25
-    else:
-        return 0
+    games_dict = {8: 0.65, 9: 0.55, 10: 0.45, 11: 0.35, 12: 0.25}
+    return games_dict.get(column, 0)

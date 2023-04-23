@@ -1,7 +1,7 @@
-import datetime
-from data_analysis import data_functions
 import pandas as pd
 import numpy as np
+
+from data_analisys import data_functions
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 getcontext().prec = 5
@@ -21,7 +21,7 @@ def analisys(db):
     skip_winners_bool = pd.DataFrame(False, columns=[str(i) for i in range(1,51)], index=range(len(winning_numbers)))
 
     # Fill in the True values
-    for e in range(1, 6):
+    for e in range(1,6):
         col_name = f"Nro{e}"
         skip_winners_bool = skip_winners_bool | (winning_numbers[col_name].to_numpy()[:, None] == total_numbers)
 

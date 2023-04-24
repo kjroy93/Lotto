@@ -87,21 +87,9 @@ def natural_rotation(database, hits, numbers, data_average, index_start, index_e
     return rotation
 
 def get_rotations(database, hits, numbers, data_average, is_star=False):
-    aprox_rotations = []
-    exact_rotations = []
-    if is_star:
-        index_ranges = [(1,6,'_low'), (7, 12, '_high')]
-    else:
-        index_ranges = [(1, 25, '_low'), (26, 50, '_high')]
-    
-    for start, end, suffix in index_ranges:
-        # exact rotations
-        exact_rotation = natural_rotation(database, hits, numbers, data_average, start, end, is_star=is_star, aprox=False)
-        exact_rotations.append(exact_rotation)
-        # approx rotations
-        aprox_rotation = natural_rotation(database, hits, numbers, data_average, start, end, is_star=is_star, aprox=True)
-        aprox_rotations.append(aprox_rotation)
-    return tuple(aprox_rotations + exact_rotations)
+    exact_rotation = natural_rotation(database, hits, numbers, data_average, 1, 50, is_star=is_star, aprox=False)
+    aprox_rotation = natural_rotation(database, hits, numbers, data_average, 1, 50, is_star=is_star, aprox=True)
+    return aprox_rotation, exact_rotation
 
 def combination_count(database, numbers, df_with_numbers):
     def low_numbers(numbers):

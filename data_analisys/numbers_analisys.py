@@ -7,26 +7,28 @@ from decimal import Decimal, ROUND_HALF_UP, getcontext
 getcontext().prec = 5
 np.set_printoptions(precision=5)
 
-skips = np.arange(0,19)
 total_numbers = np.arange(1,51)
-
-# Add an extra row, in order to compare the number that did not appear for the first time in the game history
-d_0 = pd.DataFrame(columns = [str(i) for i in range(1,51)], index=[0]).fillna(True)
+# array of skips
+skips = np.arange(0,19)
+# Extra row, in order to compare the number that did not appear for the first time in the game history
+d_0 = pd.DataFrame(columns=[str(i) for i in range(1, 51)], index=[0]).fillna(True)
 
 def analisys(db):
     # Load the data base and obtain the first DataFrame
     winning_numbers = db.iloc[:, 2:7]
-    
+
     # Create a template DataFrame with all values set to False
-    skip_winners_bool = pd.DataFrame(False, columns=[str(i) for i in range(1,51)], index=range(len(winning_numbers)))
+    skip_winners_bool = pd.DataFrame(False, columns=[str(i) for i in range(1, 51)], index=range(len(db)))
 
-    # Fill in the True values
-    for e in range(1,6):
-        col_name = f"Nro{e}"
-        skip_winners_bool = skip_winners_bool | (winning_numbers[col_name].to_numpy()[:, None] == total_numbers)
+    new_bool_df = pd.DataFrame((db[f"Nro{1}"].to_numpy()[:, None] == total_numbers), columns=[str(i) for i in range(1, 51)])
 
-    # Create the final DataFrame
-    skip_winners = pd.concat([d_0, skip_winners_bool]).reset_index(drop=True)
+    for col_name in [f"Nro{e}" for e in range(1, 6)]:
+        num = db[col_name].iloc[0]
+        # actualizar valores de new_bool_df
+        new_bool_df = pd.DataFrame((db[col_name].to_numpy()[:, None] == total_numbers), columns=[str(i) for i in range(1, 51)])
+        skip_winners_bool = skip_winners_bool.shift(1, fill_value=False) | new_bool_df
+        skip_winners_bool.iloc[0, skip_winners_bool.columns.get_loc(str(num))] = True
+    skip_winners_bool = pd.concat([d_0, skip_winners_bool]).reset_index(drop=True)
 
     # Year History for numbers and stars
     numbers_year_history, total_hits = data_functions.year_hits(db, winning_numbers, total_numbers, data_functions.count_hits)
@@ -38,15 +40,11 @@ def analisys(db):
     numbers_average = data_functions.average_hits(db, total_hits, total_numbers)
 
     # Get the natural rotation of the numbers
-    aprox_rotation_bn_low, aprox_rotation_bn_high, exact_rotation_bn_low, exact_rotation_bn_high = data_functions.get_rotations(db, total_hits, total_numbers, numbers_average, is_star=False)
-
-    # Data concatenation
-    df_aprox = pd.concat([aprox_rotation_bn_low, aprox_rotation_bn_high])
-    df_exact = pd.concat([exact_rotation_bn_low, exact_rotation_bn_high])
+    df_aprox, df_exact = data_functions.get_rotations(db, total_hits, total_numbers, numbers_average, is_star=False)
     
     # It creates the list of draws, numbers and the dictionary to obtain the amount of skips per number if wins and looses.
-    draws = np.arange(1, len(skip_winners))
-    dicts = {e: data_functions.count_skips(skip_winners.iloc[:e], total_numbers) for e in draws}
+    draws = np.arange(1, len(skip_winners_bool))
+    dicts = {e: data_functions.count_skips(skip_winners_bool.iloc[:e], total_numbers) for e in draws}
 
     skip_numbers = pd.DataFrame.from_dict(dicts, orient='index')
 

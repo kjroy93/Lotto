@@ -1,10 +1,14 @@
 """file to clean the database"""
 
+# Standard libraries of Python
 import time
 from datetime import datetime
 
+# Dependencies
 import pandas as pd
 
+# Libraries proper of this proyect
+from scrapping import euro_scraping
 
 def days_sum(day, change):
     date = day + change
@@ -61,7 +65,9 @@ def structure(data):
     
     result = pd.concat([df, df1], ignore_index = True) \
                             .rename(columns = {0: 'Dates'})
-    database = pd.concat([result, data], axis = 1, join = 'inner')
-    database['Dates'] = database['Dates'].dt.floor('d')
+    dataframe = pd.concat([result, data], axis = 1, join = 'inner')
+    dataframe['Dates'] = database['Dates'].dt.floor('d')
 
-    return database
+    return dataframe
+
+database = euro_scraping()

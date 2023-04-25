@@ -1,7 +1,9 @@
 """Scrapping functions"""
 
+# Standard libraries of Python
 from time import gmtime
 
+# Dependencies
 import pandas as pd
 import requests
 

@@ -1,17 +1,30 @@
+"""Main function to analize the data of the 5 numbers in the array of 50, for the lottery of Europe, based in historical records"""
+
+# Dependencies
 import pandas as pd
 import numpy as np
+np.set_printoptions(precision=5)
 
+# Libraries made for the Proyect
+from database.clean_database import database
 from data_analisys import data_functions
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 getcontext().prec = 5
-np.set_printoptions(precision=5)
 
+"""Constants of the main code for numbers analisys"""
+
+# Array of numbers
 total_numbers = np.arange(1,51)
-# array of skips
+
+# Array of skips
 skips = np.arange(0,19)
+
 # Extra row, in order to compare the number that did not appear for the first time in the game history
 d_0 = pd.DataFrame(columns=[str(i) for i in range(1, 51)], index=[0]).fillna(True)
+
+# Main DataFrame to be updated with new draws in function analisys
+main_df_counts = data_functions.first_df_bool(database, total_numbers)
 
 def analisys(db):
     # Load the data base and obtain the first DataFrame
@@ -19,15 +32,11 @@ def analisys(db):
 
     # Create a template DataFrame with all values set to False
     skip_winners_bool = pd.DataFrame(False, columns=[str(i) for i in range(1, 51)], index=range(len(db)))
-
-    new_bool_df = pd.DataFrame((db[f"Nro{1}"].to_numpy()[:, None] == total_numbers), columns=[str(i) for i in range(1, 51)])
-
-    for col_name in [f"Nro{e}" for e in range(1, 6)]:
-        num = db[col_name].iloc[0]
-        # actualizar valores de new_bool_df
-        new_bool_df = pd.DataFrame((db[col_name].to_numpy()[:, None] == total_numbers), columns=[str(i) for i in range(1, 51)])
-        skip_winners_bool = skip_winners_bool.shift(1, fill_value=False) | new_bool_df
-        skip_winners_bool.iloc[0, skip_winners_bool.columns.get_loc(str(num))] = True
+    
+    # Fill in the True values
+    for e in range(1,6):
+        col_name = f"Nro{e}"
+        skip_winners_bool = skip_winners_bool | (winning_numbers[col_name].to_numpy()[:, None] == total_numbers)
     skip_winners_bool = pd.concat([d_0, skip_winners_bool]).reset_index(drop=True)
 
     # Year History for numbers and stars
@@ -42,27 +51,35 @@ def analisys(db):
     # Get the natural rotation of the numbers
     df_aprox, df_exact = data_functions.get_rotations(db, total_hits, total_numbers, numbers_average, is_star=False)
     
-    # It creates the list of draws, numbers and the dictionary to obtain the amount of skips per number if wins and looses.
-    draws = np.arange(1, len(skip_winners_bool))
-    dicts = {e: data_functions.count_skips(skip_winners_bool.iloc[:e], total_numbers) for e in draws}
+    # Continue of the Main Counts Df
+    mcd_last_row = main_df_counts.iloc[-1:].reset_index(drop=True)
 
-    skip_numbers = pd.DataFrame.from_dict(dicts, orient='index')
+    # Replace the values of last row to prepare for sum
+    true_to_nan = mcd_last_row.replace(True, np.nan)
+    mcd_last_row = true_to_nan(False, 1)
+
+    # Last row of Boolean Df in Current Flow
+    bdcf_last_row = skip_winners_bool.iloc[-1:].reset_index(drop=True)
+
+    # Sum of rows
+    new_row = mcd_last_row + bdcf_last_row
+    new_row = new_row.replace(np.nan, 0).astype(int)
+
+    # New version of Main Counts Df
+    main_df_counts = pd.concat([main_df_counts, new_row], ignore_index=True)
+    main_df_counts.index = main_df_counts.index + 1
 
     # Order the last draw for skips:
-    last_draw = sorted(dicts[len(skip_numbers)].items(), key=lambda x: x[1])
-    last_draw = pd.DataFrame({'Numero': [x[0] for x in last_draw], 'Skips': [int(x[1]) for x in last_draw]})
-
+    last_draw = new_row.transpose().sort_values(by=0).reset_index()
+    last_draw = last_draw.rename(columns={'index': 'Numero', 0: 'Skips'})
+    
     # Select the last 12 draws
-    if len(skip_numbers) == 12:
-        last_12_draws = np.arange(len(skip_numbers) - 11, len(skip_numbers)+1)
-    else:
-        last_12_draws = np.arange(len(skip_numbers) - 12, len(skip_numbers))
-        
-    sk_12 = skip_numbers.loc[last_12_draws]
+    last_12_draws = np.arange(len(main_df_count) - 12, len(main_df_count) + 1)
+    sk_12 = main_df_count.loc[last_12_draws]
 
     # This establish the skips of the last 12 draws
     aus_12 = [sk_12.loc[i - 1, str(column)] for i in last_12_draws[1:13] for column in sk_12 if sk_12.loc[i, str(column)] == 0]
-    counter_7 = Counter(aus_12[25:60])
+    counter_7 = Counter(aus_12[24:60])
     counter_12 = Counter(aus_12)
     last_7 = [counter_7.get(i,0) for i in skips]
     last_12 = [counter_12.get(i,0) for i in skips]

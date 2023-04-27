@@ -8,7 +8,7 @@ from datetime import datetime
 import pandas as pd
 
 # Libraries proper of this proyect
-from database.scraping import euro_scraping
+from DataBase.scraping import euro_scraping
 
 def days_sum(day, change):
     date = day + change

@@ -1,4 +1,4 @@
-"""file to clean the database"""
+"""File to clean the database"""
 
 # Standard libraries of Python
 import time
@@ -8,7 +8,7 @@ from datetime import datetime
 import pandas as pd
 
 # Libraries proper of this proyect
-from scrapping import euro_scraping
+from database.scraping import euro_scraping
 
 def days_sum(day, change):
     date = day + change
@@ -38,10 +38,18 @@ def structure(data):
     data.iloc[:, 1:6] = data.iloc[:, 1:6].apply(lambda x: pd.Series(sorted(x)), axis=1)
     data.iloc[:, 6:8] = data.iloc[:, 6:8].apply(lambda x: pd.Series(sorted(x)), axis=1)
 
-    entry_point = time.mktime((2004, 2, 6, 0, 0, 0, 0, 0, 0)) # reference for math - first Friday of February 2004
-    tuesday = time.mktime((2004, 2, 10, 0, 0, 0, 0, 0, 0)) # reference for math with four days of difference
-    first_draw = time.mktime((2004, 2, 13, 0, 0, 0, 0, 0, 0)) # this is the first draws of Euro Millions
-    change_draw = time.mktime((2011, 5, 6, 0, 0, 0, 0, 0, 0)) # this is the Last draw of the old rule: one draw per week
+    # reference for math - first Friday of February 2004
+    entry_point = time.mktime((2004, 2, 6, 0, 0, 0, 0, 0, 0))
+
+    # reference for math with four days of difference
+    tuesday = time.mktime((2004, 2, 10, 0, 0, 0, 0, 0, 0)) 
+
+    # this is the first draws of Euro Millions
+    first_draw = time.mktime((2004, 2, 13, 0, 0, 0, 0, 0, 0))
+
+    # this is the Last draw of the old rule: one draw per week
+    change_draw = time.mktime((2011, 5, 6, 0, 0, 0, 0, 0, 0)) 
+
     next_week = first_draw - entry_point
     next_tuesday = tuesday - entry_point
     tuesday_friday = first_draw - tuesday
@@ -66,8 +74,11 @@ def structure(data):
     result = pd.concat([df, df1], ignore_index = True) \
                             .rename(columns = {0: 'Dates'})
     dataframe = pd.concat([result, data], axis = 1, join = 'inner')
-    dataframe['Dates'] = database['Dates'].dt.floor('d')
+    dataframe['Dates'] = dataframe['Dates'].dt.floor('d')
 
     return dataframe
 
-database = euro_scraping()
+def database():
+    database = euro_scraping()
+    database = structure(database)
+    return database

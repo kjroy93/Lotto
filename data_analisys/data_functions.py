@@ -1,7 +1,6 @@
 """Functions to work with the data"""
 
 # Standard libraries of Python
-import os
 from collections import Counter
 from decimal import Decimal, getcontext
 getcontext().prec = 5
@@ -11,24 +10,28 @@ import numpy as np
 import pandas as pd
 np.set_printoptions(precision=5)
 
-# Extra row, in order to compare the number that did not appear for the first time in the game history
-d_0 = pd.DataFrame(columns=[str(i) for i in range(1, 51)], index=[0]).fillna(True)
-
 def draw_generator(lenght):
     for i in range(12,lenght):
         yield i
-
+        
 def clean_df(df, columns_id, name):
     df.columns = columns_id
     df.columns.name = name
     df.index.name = 'Draws'
     return df
+        
+def numbers_boolean(database, boolean_df, numbers):
+    row_0 = pd.DataFrame(columns=[str(i) for i in range(1, 51)], index=[0]).fillna(True)
+    for e in range(1,6):
+        col_name = f"Nro{e}"
+        boolean_df = boolean_df | (database[col_name].to_numpy()[:, None] == numbers)
+    boolean_df = pd.concat([row_0, boolean_df]).reset_index(drop=True)
+    return boolean_df
 
 def first_df_bool(database, numbers):
     
     def count_skips(df, list_numbers):
         counts = {str(key): 0 for key in list_numbers}
-        df_len = len(df)
         for col in range(df.shape[1]):
             counter = 0
             for i in df.iloc[::-1, col]:
@@ -40,28 +43,18 @@ def first_df_bool(database, numbers):
         return counts
 
     df = database.head(13).iloc[:, 2:7]
-    row = pd.DataFrame(columns=[str(i) for i in range(1, 51)], index=[0]).fillna(True)
     main_winners_bool = pd.DataFrame(False, columns=[str(i) for i in range(1, 51)], index=range(len(df)))
+    
+    boolean_df = numbers_boolean(df, main_winners_bool, numbers)
 
-    # Fill in the True values
-    for e in range(1,6):
-        col_name = f"Nro{e}"
-        main_winners_bool = main_winners_bool | (df[col_name].to_numpy()[:, None] == numbers)
-
-    main_winners_bool = pd.concat([d_0, main_winners_bool]).reset_index(drop=True)
-    draws = np.arange(1, len(main_winners_bool))
-    dic = {e: count_skips(main_winners_bool.iloc[:e], numbers) for e in draws}
+    draws = np.arange(1, len(boolean_df))
+    dic = {e: count_skips(boolean_df.iloc[:e], numbers) for e in draws}
     main_df = pd.DataFrame.from_dict(dic, orient='index')
     main_df.drop(main_df.index[0], inplace=True)
     main_df = main_df.reset_index(drop=True)
     main_df.index = main_df.index + 1
 
     return main_df
-
-def max_output(df):
-    df = df.T
-    max_numbers = df.sort_values(by=df.columns[0], ascending=False)
-    return max_numbers
 
 def count_hits(df_with_numbers, db_year, year_number):
     year, number = year_number

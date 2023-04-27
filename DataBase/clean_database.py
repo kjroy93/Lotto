@@ -11,8 +11,7 @@ import pandas as pd
 from database.scraping import euro_scraping
 
 def days_sum(day, change):
-    date = day + change
-    return date
+    return day + change
 
 def clean_df(df):
     df_clean = {
@@ -79,6 +78,5 @@ def structure(data):
     return dataframe
 
 def database():
-    database = euro_scraping()
-    database = structure(database)
-    return database
+    """return database with structure"""
+    return structure(euro_scraping())

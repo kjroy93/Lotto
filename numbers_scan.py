@@ -2,7 +2,7 @@
 At this point, it is not doing tickets, just picking numbers
 """
 
-# Libraries
+# Standard Libraries of Python
 import sys
 import time
 
@@ -10,7 +10,7 @@ import time
 import pandas as pd
 import numpy as np
 
-# Libraries proper of this proyect
+# Libraries proper of this Proyect
 from database.clean_database import database
 from data_analisys.data_functions import draw_generator, numbers_boolean, first_df_bool
 from data_analisys.numbers_analisys import analisys

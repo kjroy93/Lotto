@@ -71,7 +71,7 @@ def structure(data):
     df1 = pd.DataFrame(list(map(datetime.fromtimestamp, dates_1)))
     
     result = pd.concat([df, df1], ignore_index = True) \
-                            .rename(columns = {0: 'Dates'})
+        .rename(columns = {0: 'Dates'})
     dataframe = pd.concat([result, data], axis = 1, join = 'inner')
     dataframe['Dates'] = dataframe['Dates'].dt.floor('d')
 

@@ -16,23 +16,23 @@ def days_sum(day, change):
 
 def clean_df(df):
     df_clean = {
-    'Sorteo': "int64",
-    'Nro1': "int64",
-    'Nro2': "int64",
-    'Nro3': "int64",
-    'Nro4': "int64",
-    'Nro5': "int64",
-    'Star_1': "int64",
-    'Star_2': "int64"
+    'sorteo': "int64",
+    'nro1': "int64",
+    'nro2': "int64",
+    'nro3': "int64",
+    'nro4': "int64",
+    'nro5': "int64",
+    'star_1': "int64",
+    'star_2': "int64"
     }
     df = df.astype(df_clean)
     return df
 
 def structure(data):
-    data.drop('Dates', axis=1, inplace=True)
-    data = data.reindex(columns=['Sorteo', 'Nro1', 'Nro2', 'Nro3', 'Nro4', 'Nro5', 'Star_1', 'Star_2'])
-    data['Sorteo'] = range(1,len(data)+1)
-    update_dict = {'Nro1': 3, 'Nro2': 31, 'Nro3': 41, 'Nro4': 48, 'Nro5': 50, 'Star_1': 8, 'Star_2': 11}
+    data.drop('dates', axis=1, inplace=True)
+    data = data.reindex(columns=['sorteo', 'nro1', 'nro2', 'nro3', 'nro4', 'nro5', 'star_1', 'star_2'])
+    data['sorteo'] = range(1,len(data)+1)
+    update_dict = {'nro1': 3, 'nro2': 31, 'nro3': 41, 'nro4': 48, 'nro5': 50, 'star_1': 8, 'star_2': 11}
     data.loc[1088, update_dict.keys()] = update_dict.values()
     data = clean_df(data)
     data.iloc[:, 1:6] = data.iloc[:, 1:6].apply(lambda x: pd.Series(sorted(x)), axis=1)
@@ -72,9 +72,9 @@ def structure(data):
     df1 = pd.DataFrame(list(map(datetime.fromtimestamp, dates_1)))
     
     result = pd.concat([df, df1], ignore_index = True) \
-        .rename(columns = {0: 'Dates'})
+        .rename(columns = {0: 'dates'})
     dataframe = pd.concat([result, data], axis = 1, join = 'inner')
-    dataframe['Dates'] = dataframe['Dates'].dt.floor('d')
+    dataframe['dates'] = dataframe['dates'].dt.floor('d')
 
     return dataframe
 

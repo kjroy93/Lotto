@@ -16,16 +16,16 @@ def euro_scraping():
     
     def rename_sorteo(df:pd.DataFrame):
         return df.rename(columns={
-                    "SORTEO":'Sorteo',
-                    "FECHA":'Dates',
-                    "DIA":'Dates',
-                    "COMBINACION GANADORA":'Nro1',
-                    "COMBINACION GANADORA.1":'Nro2',
-                    "COMBINACION GANADORA.2":'Nro3',
-                    "COMBINACION GANADORA.3":'Nro4',
-                    "COMBINACION GANADORA.4":'Nro5',
-                    "COMBINACION GANADORA.5":'Star_1',
-                    "COMBINACION GANADORA.6":'Star_2',
+                    "SORTEO":'sorteo',
+                    "FECHA":'dates',
+                    "DIA":'dates',
+                    "COMBINACION GANADORA":'nro1',
+                    "COMBINACION GANADORA.1":'nro2',
+                    "COMBINACION GANADORA.2":'nro3',
+                    "COMBINACION GANADORA.3":'nro4',
+                    "COMBINACION GANADORA.4":'nro5',
+                    "COMBINACION GANADORA.5":'star_1',
+                    "COMBINACION GANADORA.6":'star_2',
                     })
 
     sorteo_euro_millones = pd.DataFrame()

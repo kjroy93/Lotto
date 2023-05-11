@@ -16,7 +16,7 @@ def euro_scraping():
     
     def rename_sorteo(df:pd.DataFrame):
         return df.rename(columns={
-                    "SORTEO":'sorteo',
+                    "SORTEO":'draw',
                     "FECHA":'dates',
                     "DIA":'dates',
                     "COMBINACION GANADORA":'nro1',

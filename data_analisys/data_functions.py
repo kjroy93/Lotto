@@ -23,7 +23,7 @@ def clean_df(df, columns_id, name):
 def numbers_boolean(database, boolean_df, numbers):
     row_0 = pd.DataFrame(columns=[str(i) for i in range(1, 51)], index=[0]).fillna(True)
     for e in range(1,6):
-        col_name = f"Nro{e}"
+        col_name = f"nro{e}"
         boolean_df = boolean_df | (database[col_name].to_numpy()[:, None] == numbers)
     boolean_df = pd.concat([row_0, boolean_df]).reset_index(drop=True)
     return boolean_df
@@ -63,7 +63,7 @@ def count_hits(df_with_numbers, db_year, year_number):
     return int(count)
 
 def year_hits(database, df_with_numbers, numbers_quantity, count_hits_func):
-    db_year = database['Dates'].dt.year
+    db_year = database['dates'].dt.year
 
     year_history = np.zeros((len(numbers_quantity), db_year.max()-db_year.min()+1))
     

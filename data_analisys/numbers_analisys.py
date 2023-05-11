@@ -1,13 +1,9 @@
 """Main function to analize the data of the 5 numbers in the array of 50 numbers in Euro Millions lottery game, the Europe Lottery, based in historical records"""
 
 # Standar libraries of Python
-import os
-import sys
-
-# PATH of the database file
-current_folder = os.path.abspath(os.path.dirname(__file__))
-database_folder = os.path.join(current_folder, '..', 'database')
-sys.path.append(database_folder)
+from collections import Counter
+from decimal import Decimal, ROUND_HALF_UP, getcontext
+getcontext().prec = 5
 
 # Dependencies
 import pandas as pd
@@ -16,9 +12,6 @@ np.set_printoptions(precision=5)
 
 # Libraries made for the Proyect
 from data_analisys import data_functions
-from collections import Counter
-from decimal import Decimal, ROUND_HALF_UP, getcontext
-getcontext().prec = 5
 
 # Array of numbers
 total_numbers = np.arange(1,51)
@@ -90,7 +83,7 @@ def analisys(db, boolean_df, main_counts):
     future_sg_5 = results_df.iloc[-4:]
     future_groups_df = pd.DataFrame({'10_games': (future_sg_10 > 0).sum(), '5_games': (future_sg_5 > 0).sum()}).T
     
-    last_year = db['Dates'].iloc[-1]
+    last_year = db['dates'].iloc[-1]
     current_year = last_year.year
     year_info = numbers_year_history.loc[['Median', 'Average', current_year], :50]
     year_criteria = {key: [] for key in total_numbers}
@@ -129,7 +122,7 @@ def analisys(db, boolean_df, main_counts):
     current_hits_needed = data_functions.minimal_hits(db, total_hits, total_numbers, numbers_average, aprox=True)
 
     # Finding rotation hit
-    rotation_hit = next((draw for draw in range(len(db['Sorteo'])+1, len(db['Sorteo'])+12) if draw * data_functions.minimal_hits(db, total_hits, total_numbers, numbers_average, aprox=True) / len(db) > int(current_hits_needed) + 1), None)
+    rotation_hit = next((draw for draw in range(len(db['draw'])+1, len(db['draw'])+12) if draw * data_functions.minimal_hits(db, total_hits, total_numbers, numbers_average, aprox=True) / len(db) > int(current_hits_needed) + 1), None)
 
     # Rotation criteria
     rotation_criteria = {}
@@ -138,7 +131,7 @@ def analisys(db, boolean_df, main_counts):
         diff_exact = df_exact.at[i, 'Difference']
         diff_aprox = df_aprox.at[i, 'Difference']
         hits_exact = df_exact.at[i, 'Hits']
-        if category == 1 and diff_exact > 0.50:
+        if category == 1 and diff_exact > 0:
             rotation_criteria[i] = 0.50
         elif category == 1 and -1 < diff_exact <= 0.40:
             x = (abs(diff_exact) + (Decimal('0.5') * Decimal('100')) / Decimal('0.50')) / Decimal('100') + Decimal('0.50')
@@ -204,7 +197,7 @@ def analisys(db, boolean_df, main_counts):
     tomorrow_numbers = df_numbers[['Criteria']]
     tomorrow_numbers = tomorrow_numbers.sort_values(by='Criteria', ascending=False)
     criterion = tomorrow_numbers['Criteria'].median()
-    recommended_numbers = tomorrow_numbers.loc[tomorrow_numbers['Criteria'] >= criterion].reset_index().rename(columns={'index': 'Numbers'})
-    not_recommended_numbers = tomorrow_numbers.loc[tomorrow_numbers['Criteria'] < criterion].reset_index().rename(columns={'index': 'Numbers'})
+    recommended_numbers = tomorrow_numbers.loc[tomorrow_numbers['Criteria'] >= 2].reset_index().rename(columns={'index': 'Numbers'})
+    not_recommended_numbers = tomorrow_numbers.loc[tomorrow_numbers['Criteria'] < 1.99].reset_index().rename(columns={'index': 'Numbers'})
 
     return recommended_numbers, not_recommended_numbers, main_counts

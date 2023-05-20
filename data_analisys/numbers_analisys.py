@@ -1,8 +1,10 @@
 """Main function to analize the data of the 5 numbers in the array of 50 numbers in Euro Millions lottery game, the Europe Lottery, based in historical records"""
 
-# Standar libraries of Python
+# Standard libraries of Python
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
+
+import legacy_data_functions
 getcontext().prec = 5
 
 # Dependencies
@@ -11,7 +13,7 @@ import numpy as np
 np.set_printoptions(precision=5)
 
 # Libraries made for the Proyect
-from data_analisys import data_functions
+from data_analisys import legacy_data_functions
 
 # Array of numbers
 total_numbers = np.arange(1,51)
@@ -24,16 +26,16 @@ def analisys(db, boolean_df, main_counts):
     winning_numbers = db.iloc[:, 2:7]
 
     # Year History for numbers and stars
-    numbers_year_history, total_hits = data_functions.year_hits(db, winning_numbers, total_numbers, data_functions.count_hits)
+    numbers_year_history, total_hits = legacy_data_functions.year_hits(db, winning_numbers, total_numbers, legacy_data_functions.count_hits)
     ny_mean = pd.DataFrame(numbers_year_history.mean(), columns=['Average']).T.rename(index={'0': 'Average'})
     ny_median = pd.DataFrame(numbers_year_history.median(), columns=['Median']).T.rename(index={'0': 'Median'}).applymap(lambda x:(int(x+0.5)))
     numbers_year_history = pd.concat([ny_median, ny_mean, numbers_year_history])
 
     # Average of hits per numbers
-    numbers_average = data_functions.average_hits(db, total_hits, total_numbers)
+    numbers_average = legacy_data_functions.average_hits(db, total_hits, total_numbers)
 
     # Get the natural rotation of the numbers
-    df_aprox, df_exact = data_functions.get_rotations(db, total_hits, total_numbers, numbers_average, is_star=False)
+    df_aprox, df_exact = legacy_data_functions.get_rotations(db, total_hits, total_numbers, numbers_average, is_star=False)
     
     # Continue of the Main Counts Df
     mcd_last_row = main_counts.iloc[-1:].reset_index(drop=True)
@@ -119,10 +121,10 @@ def analisys(db, boolean_df, main_counts):
         rotation_info[number] = 1
 
     # Finding current hits needed
-    current_hits_needed = data_functions.minimal_hits(db, total_hits, total_numbers, numbers_average, aprox=True)
+    current_hits_needed = legacy_data_functions.minimal_hits(db, total_hits, total_numbers, numbers_average, aprox=True)
 
     # Finding rotation hit
-    rotation_hit = next((draw for draw in range(len(db['draw'])+1, len(db['draw'])+12) if draw * data_functions.minimal_hits(db, total_hits, total_numbers, numbers_average, aprox=True) / len(db) > int(current_hits_needed) + 1), None)
+    rotation_hit = next((draw for draw in range(len(db['draw'])+1, len(db['draw'])+12) if draw * legacy_data_functions.minimal_hits(db, total_hits, total_numbers, numbers_average, aprox=True) / len(db) > int(current_hits_needed) + 1), None)
 
     # Rotation criteria
     rotation_criteria = {}
@@ -167,7 +169,7 @@ def analisys(db, boolean_df, main_counts):
 
     group_criteria = pd.DataFrame.from_dict(group_criteria_dict, orient='index', columns=['group_criteria'])
     
-    skips_7_12[['values_7', 'values_12']] = skips_7_12[['7', '12']].applymap(lambda x: data_functions.games_7(x) if x <= 7 else data_functions.games_12(x))
+    skips_7_12[['values_7', 'values_12']] = skips_7_12[['7', '12']].applymap(lambda x: legacy_data_functions.games_7(x) if x <= 7 else legacy_data_functions.games_12(x))
 
     position_criteria = {key: [] for key in total_numbers}
 
@@ -197,7 +199,7 @@ def analisys(db, boolean_df, main_counts):
     tomorrow_numbers = df_numbers[['Criteria']]
     tomorrow_numbers = tomorrow_numbers.sort_values(by='Criteria', ascending=False)
     criterion = tomorrow_numbers['Criteria'].median()
-    recommended_numbers = tomorrow_numbers.loc[tomorrow_numbers['Criteria'] >= 2].reset_index().rename(columns={'index': 'Numbers'})
-    not_recommended_numbers = tomorrow_numbers.loc[tomorrow_numbers['Criteria'] < 1.99].reset_index().rename(columns={'index': 'Numbers'})
+    recommended_numbers = tomorrow_numbers.loc[tomorrow_numbers['Criteria'] >= criterion].reset_index().rename(columns={'index': 'Numbers'})
+    not_recommended_numbers = tomorrow_numbers.loc[tomorrow_numbers['Criteria'] < criterion].reset_index().rename(columns={'index': 'Numbers'})
 
     return recommended_numbers, not_recommended_numbers, main_counts

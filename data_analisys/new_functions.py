@@ -12,16 +12,25 @@ np.set_printoptions(precision=5)
 
 # Main Object - Super Class
 class Analysis:
-    def __init__(self):
+    def __init__(self,is_star=False):
         self.df = pd.read_parquet('database/db.parquet')
-        self.dates_construct = self.df.copy()
-        self.dates_construct['dates'] = self.dates_construct['dates'].dt.year
-        self.dates_construct = self.dates_construct.drop(
-            columns=['draw','star_1','star_2']
-            )
-        self.draws = range(1,len(self.df)+1)
-        self.numbers = range(1,51)
+        self.df_stars = self.df.drop(
+            columns=['nro1','nro2','nro3','nro4','nro5'],
+            index=range(0,863)
+        )
+        dates_construct = self.df.copy()
+        dates_construct['dates'] = dates_construct['dates'].dt.year
 
+        if not is_star:
+            self.dates_construct = dates_construct.drop(
+                columns=['draw','star_1','star_2']
+            )
+        else:
+            self.dates_construct = dates_construct.drop(
+                columns=['draw','nro1','nro2','nro3','nro4','nro5'],
+                index=range(0,863)
+            )
+    
     def groups_info(self):
         winning_numbers = self.df.drop(
             columns=['dates','star_1','star_2']
@@ -31,13 +40,13 @@ class Analysis:
         group_names = [tuple(range(i,i+10)) for i in range(1,51,10)]
         results = {i: {
                 group_name: sum([1 for num in row if num in group])
-                for group_name, group in zip(group_names, groups)
+                for group_name,group in zip(group_names,groups)
             }
-            for i, row in winning_numbers.iterrows()
+            for i,row in winning_numbers.iterrows()
         }
         self.groups = pd.DataFrame.from_dict(
             results,
-            orient='index',
+            orient='index'
         )
         self.groups.columns = [f'{i}_to_{i+9}' for i in range(1,51,10)]
         
@@ -50,6 +59,25 @@ class Analysis:
         self.future_groups = pd.DataFrame({
             '10_games': (future_sg_10 > 0).sum()}
         ).T
+
+    def __ranges(self):
+        self._draws = range(1,len(self.df)+1)
+        self._numbers = range(1,51)
+        self._stars = range(1,13)
+        self._draws_stars = range(864,len(self.df)+1)
+
+    def __control_condition(self,is_star=False):
+        self.__ranges()
+        if not is_star:
+            self._df = self.df
+            self._col = self._numbers
+            self._id = self._draws
+            self._col_df = range(1,6)
+        else:
+            self._df = self.df_stars
+            self._col = self._stars
+            self._id = self._draws_stars
+            self._col_df = range(1,3)
     
     def __transformation_into_columns(self,row):
         for draw in range(1,6):
@@ -58,28 +86,58 @@ class Analysis:
             else:
                 self.year_history.loc[row.dates,row[f'nro{draw}']] = 1
 
-    def apply_transformation(self):
-        self.year_history = pd.DataFrame(columns=self.numbers,
-            index=np.arange(self.dates_construct['dates'].iloc[0],
-            self.dates_construct['dates'].iloc[-1]+1),
+    def __stars_transformation_into_columns(self,row):
+        for draw in range(1,3):
+            if not np.isnan(self.year_history.loc[row.dates,row[f'star_{draw}']]):
+                self.year_history.loc[row.dates,row[f'star_{draw}']] += 1
+            else:
+                self.year_history.loc[row.dates,row[f'star_{draw}']] = 1
+
+    def apply_transformation(self,is_star=False):
+        self.__control_condition(is_star)
+        self.year_history = pd.DataFrame(columns=self._col,
+            index=np.arange(
+                self.dates_construct['dates'].iloc[0],
+                self.dates_construct['dates'].iloc[-1] + 1
             )
-        self.dates_construct.apply(self.__transformation_into_columns,axis=1)
+        )
+
+        if not is_star:
+            self.dates_construct.apply(
+                self.__transformation_into_columns,axis=1
+            )
+        else:
+            self.dates_construct.apply(
+                self.__stars_transformation_into_columns,axis=1
+            )
         self.year_history.fillna(0,inplace=True)
 
-        self.hits = self.year_history.sum().to_frame().rename(columns={0: 'hits'}).T.astype('int32')
-        self.mean = self.year_history.mean().to_frame().rename(columns={0: 'average'}).T.astype('float32')
-        self.median = self.year_history.median().to_frame().rename(columns={0: 'median'}).T.astype('float32')
-    
-    def __numbers_boolean(self):
-        self.booleans_df = pd.DataFrame(False,columns=[int(i) for i in self.numbers],
-            index=range(self.draws))
-        for e in range(1,6):
-            col_name = f"nro{e}"
-            self.booleans_df = self.booleans_df | (self.df[col_name].to_numpy()
-                [:, None] == self.numbers)
+        self.hits = self.year_history.sum().to_frame().rename(
+            columns={0: 'hits'}
+        ).T.astype('int32')
+        self.mean = self.year_history.mean().to_frame().rename(
+            columns={0: 'average'}
+        ).T.astype('float32')
+        self.median = self.year_history.median().to_frame().rename(
+            columns={0: 'median'}
+        ).T.astype('float32')
 
-    def count_skips(self):
-        self.__numbers_boolean()
+    def __numbers_boolean(self,is_star=False):
+        self.__control_condition(is_star)
+        self.booleans_df = pd.DataFrame(False,columns=self._col,
+            index=self._id)
+        for e in self._col_df:
+            if not is_star:
+                col_name = f'nro{e}'
+            else:
+                col_name = f'star_{e}'
+            self.booleans_df = self.booleans_df | (
+                self._df[col_name].to_numpy()
+                [:, None] == self._col
+            )
+
+    def count_skips(self,is_star=False):
+        self.__numbers_boolean(is_star)
         mask = self.booleans_df == 0
         reset_mask = self.booleans_df == 1
         cumulative_sum = np.cumsum(mask)
@@ -87,9 +145,8 @@ class Analysis:
         result = np.where(self.booleans_df == 0, 1, cumulative_sum)
         result = pd.DataFrame(
             result,
-            index=self.draws,
-            columns=self.numbers)
-        
+            index=self._id,
+            columns=self._col)
         df_t = result != 0
         self.counts = df_t.cumsum()-df_t.cumsum().where(~df_t).ffill().fillna(0).astype(int)
 
@@ -98,7 +155,7 @@ class Analysis:
         if len(self.counts) - 12 == 0:
             last_12_draws = range(1,len(self.counts))
         else:
-            last_12_draws = range(len(self.counts)-11, len(self.counts)+1)
+            last_12_draws = range(len(self.counts) - 11,len(self.counts) + 1)
 
         aus_12 = [
             self.counts.loc[i-1,int(column)] 
@@ -115,26 +172,27 @@ class Analysis:
         )
 
     def __total_average_hits(self,is_star=False,aprox=False):
+        self.__control_condition(is_star)
         divide = 2 if is_star else 5
-        self.average = self.hits.apply(lambda hits: hits / len(self.df) / divide).iloc[0]
+        self.average = self.hits.apply(lambda hits: hits / len(self._df) / divide).iloc[0]
         if aprox:
-            return Decimal(self.average.sum()) / Decimal(int(50)) + Decimal(0.001)
+            return Decimal(self.average.sum()) / Decimal(len(self._numbers)) + Decimal(0.001)
         else:
-            return Decimal(self.average.sum()) / Decimal(int(50))
+            return Decimal(self.average.sum()) / Decimal(len(self._numbers))
 
     def m_hits(self,is_star=False,aprox=False):
         min_hits = self.__total_average_hits(is_star,aprox)
         return min_hits * Decimal(int(self.hits.iloc[0,0])) / Decimal(float(self.average.iat[0]))
 
     def __natural_rotation(self,is_star=False,aprox=False):
+        self.__control_condition(is_star)
         self.__total_average_hits(is_star,aprox)
-
         rotation = pd.DataFrame(
             {'hits': self.hits.iloc[0],
             'average_of_numbers': self.average,
             'total_average': self.__total_average_hits(is_star,aprox),
             'minimal_hits_needed': self.m_hits(is_star,aprox)},
-            index=self.numbers)
+            index=self._numbers)
         
         rotation['difference'] = rotation['hits'] - rotation['minimal_hits_needed']
         return rotation
@@ -143,7 +201,8 @@ class Analysis:
         self.exact_rotation = self.__natural_rotation(is_star,aprox=False)
         self.aprox_rotation = self.__natural_rotation(is_star,aprox=True)
 
-    def numbers_clasification(self):
+    def numbers_clasification(self,is_star):
+        self.__control_condition(is_star)
         self.best_numbers = self.aprox_rotation.loc[
             self.aprox_rotation['hits'] > self.aprox_rotation['minimal_hits_needed']
             ].index.to_numpy()
@@ -151,7 +210,7 @@ class Analysis:
             (self.exact_rotation['hits'] > self.exact_rotation['minimal_hits_needed'])
             & ~(self.exact_rotation.index.isin(self.best_numbers))
             ].index.to_numpy()
-        self.category = {number: 0 for number in self.numbers}
+        self.category = {number: 0 for number in self._numbers}
         for number in self.best_numbers:
             self.category[number] = 2
         for number in self.normal_numbers:

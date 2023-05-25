@@ -6,29 +6,30 @@ from datetime import datetime
 
 # Dependencies
 import pandas as pd
+from pandas import DataFrame
 
 # Libraries proper of this proyect
 from database.scraping import euro_scraping
 
-def days_sum(day, change):
+def days_sum(day,change):
     date = day + change
     return date
 
-def clean_df(df):
+def clean_df(df: DataFrame) -> DataFrame:
     df_clean = {
-    'draw': "int64",
-    'nro1': "int64",
-    'nro2': "int64",
-    'nro3': "int64",
-    'nro4': "int64",
-    'nro5': "int64",
-    'star_1': "int64",
-    'star_2': "int64"
+    'draw': "int32",
+    'nro1': "int32",
+    'nro2': "int32",
+    'nro3': "int32",
+    'nro4': "int32",
+    'nro5': "int32",
+    'star_1': "int32",
+    'star_2': "int32"
     }
     df = df.astype(df_clean)
     return df
 
-def structure(data):
+def structure(data: DataFrame) -> DataFrame:
     # Droping the dates column because of code that generate dates below
     data.drop('dates',axis=1,inplace=True)
 
@@ -111,7 +112,7 @@ def structure(data):
     
     return dataframe
 
-def database():
+def database() -> DataFrame:
     database = euro_scraping()
     database = structure(database)
     return database

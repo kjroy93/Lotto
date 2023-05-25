@@ -5,16 +5,17 @@ from time import gmtime
 
 # Dependencies
 import pandas as pd
+from pandas import DataFrame
 import requests
 
 
-def euro_scraping():
+def euro_scraping() -> DataFrame:
     """Return all euromillones data"""
     
     assert requests.get("https://www.euromillones.com.es/").status_code == 200, 'Hay un problema con la página de euromillones'
     
     
-    def rename_sorteo(df:pd.DataFrame):
+    def rename_sorteo(df: DataFrame) -> DataFrame:
         return df.rename(columns={
                     "SORTEO":'draw',
                     "FECHA":'dates',

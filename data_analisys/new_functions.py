@@ -47,7 +47,7 @@ class Memoize:
 # Main Object - Super Class
 class Analysis:
     def __init__(self,is_star=False):
-        self.scrap = pd.read_parquet('database/db.parquet')
+        self.scrap = database()
         self.df = self.scrap.copy()
         self.df_stars = self.df.copy()
         self.df_stars = self.df.drop(

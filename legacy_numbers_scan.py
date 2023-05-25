@@ -20,7 +20,7 @@ from collections import Counter
 
 # Main Database to calculate the first DataFrame main_df_counts
 db = database()
-db_slice = db
+db_slice = db.copy()
 lenght = len(db)
 
 # Array of numbers

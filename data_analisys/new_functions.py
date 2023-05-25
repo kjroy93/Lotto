@@ -8,12 +8,48 @@ getcontext().prec = 5
 # Dependencies
 import pandas as pd
 import numpy as np
+from pandas import DataFrame
 np.set_printoptions(precision=5)
+
+# Libraries made for this Proyect
+from database.clean_database import database
+
+def draw_generator(size):
+    for draw in range(12,size):
+        yield draw
+
+def games_7(column):
+    games_dict = {0: 1, 1: 1, 2: 0.75, 3: 0.65, 4: 0.55, 5: 0.45, 6: 0.35, 7: 0.25}
+    return games_dict.get(column,0)
+
+def games_12(column):
+    games_dict = {8: 0.65, 9: 0.55, 10: 0.45, 11: 0.35, 12: 0.25}
+    return games_dict.get(column,0)
+
+# Cache class for the fast calculations
+class Memoize:
+    def __init__(self, func):
+        self.func = func
+        self.cache = {}
+
+    def __get__(self, instance, owner):
+        bound_func = self.func.__get__(instance, owner)
+        return self.__class__(bound_func)
+
+    def __call__(self, *args, **kwargs):
+        if (self.func, args, tuple(kwargs.items())) in self.cache:
+            return self.cache[(self.func, args, tuple(kwargs.items()))]
+        else:
+            result = self.func(*args, **kwargs)
+            self.cache[(self.func, args, tuple(kwargs.items()))] = result
+            return result
 
 # Main Object - Super Class
 class Analysis:
     def __init__(self,is_star=False):
-        self.df = pd.read_parquet('database/db.parquet')
+        self.scrap = database()
+        self.df = self.scrap.copy()
+        self.df_stars = self.df.copy()
         self.df_stars = self.df.drop(
             columns=['nro1','nro2','nro3','nro4','nro5'],
             index=range(0,863)
@@ -30,7 +66,39 @@ class Analysis:
                 columns=['draw','nro1','nro2','nro3','nro4','nro5'],
                 index=range(0,863)
             )
+        
+        self._draws = range(1,len(self.df)+1)
+        self._numbers = range(1,51)
+        self._stars = range(1,13)
+        self._draws_stars = range(864,len(self.df)+1)
+        self._col_df = range(1,6)
+        self._col_stars_df = range(1,3)
+
+    @property
+    def db(self):
+        return self.df
     
+    @db.setter
+    def db(self,modified_data,is_star=False):
+        if isinstance(modified_data,pd.DataFrame):
+            self.df = modified_data
+            self.df.index = (range(1,len(modified_data)+1))
+            self._draws = range(1,len(self.df)+1)
+            dates_construct = self.df.copy()
+            dates_construct['dates'] = dates_construct['dates'].dt.year
+            if not is_star:
+                self.dates_construct = dates_construct.drop(
+                    columns=['draw','star_1','star_2']
+                )
+            else:
+                self.dates_construct = dates_construct.drop(
+                    columns=['draw','nro1','nro2','nro3','nro4','nro5'],
+                    index=range(0,863)
+                )       
+        else:
+            raise ValueError("The assingned value it must be a DataFrame.")
+
+    @Memoize
     def groups_info(self):
         winning_numbers = self.df.drop(
             columns=['dates','star_1','star_2']
@@ -60,24 +128,17 @@ class Analysis:
             '10_games': (future_sg_10 > 0).sum()}
         ).T
 
-    def __ranges(self):
-        self._draws = range(1,len(self.df)+1)
-        self._numbers = range(1,51)
-        self._stars = range(1,13)
-        self._draws_stars = range(864,len(self.df)+1)
-
-    def __control_condition(self,is_star=False):
-        self.__ranges()
+    def __control_condition(self,is_star=False):        
         if not is_star:
             self._df = self.df
             self._col = self._numbers
             self._id = self._draws
-            self._col_df = range(1,6)
+            self._col_data = self._col_df
         else:
             self._df = self.df_stars
             self._col = self._stars
             self._id = self._draws_stars
-            self._col_df = range(1,3)
+            self._col_data = self._col_stars_df
     
     def __transformation_into_columns(self,row):
         for draw in range(1,6):
@@ -93,6 +154,7 @@ class Analysis:
             else:
                 self.year_history.loc[row.dates,row[f'star_{draw}']] = 1
 
+    @Memoize
     def apply_transformation(self,is_star=False):
         self.__control_condition(is_star)
         self.year_history = pd.DataFrame(columns=self._col,
@@ -125,12 +187,13 @@ class Analysis:
     def __numbers_boolean(self,is_star=False):
         self.__control_condition(is_star)
         self.booleans_df = pd.DataFrame(False,columns=self._col,
-            index=self._id)
-        for e in self._col_df:
+            index=self._id
+        )
+        for i in self._col_data:
             if not is_star:
-                col_name = f'nro{e}'
+                col_name = f'nro{i}'
             else:
-                col_name = f'star_{e}'
+                col_name = f'star_{i}'
             self.booleans_df = self.booleans_df | (
                 self._df[col_name].to_numpy()
                 [:, None] == self._col
@@ -158,7 +221,7 @@ class Analysis:
             last_12_draws = range(len(self.counts) - 11,len(self.counts) + 1)
 
         aus_12 = [
-            self.counts.loc[i-1,int(column)] 
+            self.counts.loc[i,int(column)] 
             for i in last_12_draws[0:12]
             for column in self.counts if self.counts.loc[i,int(column)] == 0
             ]
@@ -166,8 +229,9 @@ class Analysis:
         counter_l_7 = [Counter(aus_12[25:60]).get(i,0) for i in self.skips]
         counter_l_12 = [Counter(aus_12).get(i,0) for i in self.skips]
         self.skips_7_12 = pd.DataFrame(
-            {'7': counter_l_7,
-            '12': counter_l_12
+                {
+                '7': counter_l_7,
+                '12': counter_l_12
             }
         )
 
@@ -176,9 +240,9 @@ class Analysis:
         divide = 2 if is_star else 5
         self.average = self.hits.apply(lambda hits: hits / len(self._df) / divide).iloc[0]
         if aprox:
-            return Decimal(self.average.sum()) / Decimal(len(self._numbers)) + Decimal(0.001)
+            return Decimal(self.average.sum()) / Decimal(len(self._col)) + Decimal(0.001)
         else:
-            return Decimal(self.average.sum()) / Decimal(len(self._numbers))
+            return Decimal(self.average.sum()) / Decimal(len(self._col))
 
     def m_hits(self,is_star=False,aprox=False):
         min_hits = self.__total_average_hits(is_star,aprox)
@@ -192,7 +256,7 @@ class Analysis:
             'average_of_numbers': self.average,
             'total_average': self.__total_average_hits(is_star,aprox),
             'minimal_hits_needed': self.m_hits(is_star,aprox)},
-            index=self._numbers)
+            index=self._col)
         
         rotation['difference'] = rotation['hits'] - rotation['minimal_hits_needed']
         return rotation
@@ -201,7 +265,7 @@ class Analysis:
         self.exact_rotation = self.__natural_rotation(is_star,aprox=False)
         self.aprox_rotation = self.__natural_rotation(is_star,aprox=True)
 
-    def numbers_clasification(self,is_star):
+    def numbers_clasification(self,is_star=False):
         self.__control_condition(is_star)
         self.best_numbers = self.aprox_rotation.loc[
             self.aprox_rotation['hits'] > self.aprox_rotation['minimal_hits_needed']
@@ -210,19 +274,15 @@ class Analysis:
             (self.exact_rotation['hits'] > self.exact_rotation['minimal_hits_needed'])
             & ~(self.exact_rotation.index.isin(self.best_numbers))
             ].index.to_numpy()
-        self.category = {number: 0 for number in self._numbers}
+        self.category = {number: 0 for number in self._col}
         for number in self.best_numbers:
             self.category[number] = 2
         for number in self.normal_numbers:
             self.category[number] = 1
 
-# Sub class
+# Sub class for numbers analysis
 class Criteria(Analysis):
-    def __init__(self):
-        super().__init__()
-    
     def __skips_last_draws(self):
-        super().count_skips()
         last_draw = self.counts.iloc[-1].sort_values().to_frame()
         self.last_draw = last_draw.reset_index().rename(
             columns={'index':'number',
@@ -231,30 +291,19 @@ class Criteria(Analysis):
             )
 
     def year_criterion(self):
-        super().apply_transformation()
         current_year = self.dates_construct['dates'].iloc[-1]
-        year_criteria = {key: [] for key in self.numbers}
+        year_criteria = {key: [] for key in self._numbers}
 
-        for number in self.numbers:
+        for number in self._numbers:
             x = self.year_history.at[current_year,number]
             number_median = self.median.at['median',number]
             number_mean = self.mean.at['average',number]
             if number_mean != 0 and not np.isnan(number_mean):
                 if x == 0 or x <= number_median / 2:
-                    y = round(
-                        (1 - (
-                        ((number_median / 2) * 100) / 
-                        number_mean
-                    ) / 100),2
-                )
+                    y = round((1 - (((number_median / 2) * 100) / number_mean) / 100),2)
                 else:
-                    x_percentage = round(
-                        (x * 100 / number_mean) / 100,2
-                    )
-                    y = round(
-                        (1 - x_percentage if x_percentage > 1 
-                        else 1 - x_percentage),2
-                    )
+                    x_percentage = round((x * 100 / number_mean) / 100,2)
+                    y = round((1 - x_percentage if x_percentage > 1 else 1 - x_percentage),2)
             else:
                 y = 0.50
 
@@ -267,8 +316,6 @@ class Criteria(Analysis):
         )
     
     def rotation_criterion(self):
-        super().get_natural_rotations()
-        super().numbers_clasification()
         current_hits_needed = super().m_hits(aprox=True)
 
         self.rotation = next(
@@ -277,7 +324,7 @@ class Criteria(Analysis):
             int(current_hits_needed)+1),None
         )
         rotation_criteria = {}
-        for number in self.numbers:
+        for number in self._numbers:
             category = self.category[number]
             diff_exact = self.exact_rotation.at[number,'difference']
             diff_aprox = self.aprox_rotation.at[number,'difference']
@@ -285,24 +332,14 @@ class Criteria(Analysis):
                 rotation_criteria[number] = 0.50
             elif category == 1 and -1 < diff_exact <= 0.60:
                 cr = 0.50
-                x = (
-                    abs(diff_exact) + 
-                    (Decimal(str(cr)) * Decimal('100')) / 
-                    Decimal(str(cr))
-                ) / Decimal('100') + Decimal(str(cr))
-                rotation_criteria[number] = float(x.quantize(Decimal('0.01'),
-                    rounding=ROUND_HALF_UP)
-                )
+                x = (abs(diff_exact) + (Decimal(str(cr)) * Decimal('100')) / Decimal(str(cr))) / Decimal('100') + Decimal(str(cr))
+                rotation_criteria[number] = float(x.quantize(Decimal('0.01'),rounding=ROUND_HALF_UP))
             elif category == 2 and diff_aprox > 0:
                 rotation_criteria[number] = 1
                 cr = 1.00
-            elif category == 2 and diff_aprox > -1 and diff_aprox < 1 and self.rotation is not None and len(self.best_numbers) < 17:
-                x = (
-                    abs(diff_exact) * Decimal('100')
-                ) / Decimal(str(cr)) / Decimal('100') + Decimal(str(cr))
-                rotation_criteria[number] = float(x.quantize(Decimal('0.01'),
-                    rounding=ROUND_HALF_UP)
-                )
+            elif category == 2 and diff_aprox > -1 and diff_aprox < 1 and len(self.best_numbers) < 17:
+                x = (abs(diff_exact) * Decimal('100')) / Decimal(str(cr)) / Decimal('100') + Decimal(str(cr))
+                rotation_criteria[number] = float(x.quantize(Decimal('0.01'),rounding=ROUND_HALF_UP))
             else:
                 rotation_criteria[number] = 0.25
         
@@ -314,15 +351,14 @@ class Criteria(Analysis):
 
     def position_criterion(self):
         self.__skips_last_draws()
-        super().skips_for_last_12_draws()
         self.skips_7_12[['values_7','values_12']] = self.skips_7_12[['7','12']].applymap(
-            lambda x: games_7(x) if x <= 7 else
-            games_12(x)
+            lambda x: games_7(x) if x <= 7 
+            else games_12(x)
         )
 
-        position_criteria = {number: [] for number in self.numbers}
+        position_criteria = {number: [] for number in self._numbers}
 
-        last_game = 0.5
+        last_game = 0.50
         if self.skips_7_12.iloc[0,0] <= 5:
             self.skips_7_12.iloc[0,2] = last_game
         
@@ -348,7 +384,6 @@ class Criteria(Analysis):
         )
     
     def group_criterion(self):
-        super().groups_info()
         groups = [list(range(i,i+10)) for i in range(1,51,10)]
         self.future_groups.columns = [1,2,3,4,5]
         gp10 = {}
@@ -365,22 +400,22 @@ class Criteria(Analysis):
             9: 0.6,
             10: 0.5
         }
-        for column, gp in self.future_groups.loc['10_games'].items():
+        for column,gp in self.future_groups.loc['10_games'].items():
             gp_range = tuple(range(1+10*(column-1),11+10*(column-1)))
             gp10[gp_range] = gp_values.get(gp,0)
         
         gp10_df = pd.DataFrame.from_dict(
             gp10,
-            orient='index',
+            orient='index'
         ).T
         
         gp10_df = gp10_df.rename(index={0: 'criteria'})
         gp10_df.columns = [1,2,3,4,5]
-        group_criteria = {number:[] for number in self.numbers}
+        group_criteria = {number:[] for number in self._numbers}
 
-        for index, group in enumerate(groups):
+        for index,group in enumerate(groups):
             gn = group
-            for number in self.numbers:
+            for number in self._numbers:
                 if number in gn:
                     group_criteria[number] = gp10_df.iloc[0,index]
         
@@ -422,23 +457,11 @@ class Criteria(Analysis):
             }
         )
 
-def clean_df(df,columns_id,name):
+def clean_df(df: DataFrame,columns_id,name) -> DataFrame:
     df.columns = columns_id
     df.columns.name = name
     df.index.name = 'Draws'
     return df
-
-def draw_generator(lenght):
-    for draw in range(12,lenght):
-        yield draw
-
-def games_7(column):
-    games_dict = {0: 1, 1: 1, 2: 0.75, 3: 0.65, 4: 0.55, 5: 0.45, 6: 0.35, 7: 0.25}
-    return games_dict.get(column,0)
-
-def games_12(column):
-    games_dict = {8: 0.65, 9: 0.55, 10: 0.45, 11: 0.35, 12: 0.25}
-    return games_dict.get(column,0)
 
 def combination_count(database,numbers,df_with_numbers):
     def low_numbers(numbers):

@@ -1,3 +1,5 @@
+"""Main of the proyect, in order to obtain the recommended stars. This data is going to append to each lottery ticket"""
+
 # Standard Libraries of Python
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
@@ -9,20 +11,13 @@ import numpy as np
 np.set_printoptions(precision=5)
 
 # Libraries made for this Proyect
-from database.clean_database import database
-from data_analisys.new_functions import draw_generator,Analysis,Criteria
+from src.parse import Criteria
 
-euromillions = Analysis()
-euromillions.groups_info()
-euromillions.apply_transformation()
+euromillions = Criteria(is_star=True)
+
+euromillions.apply_transformation(is_star=True)
 euromillions.count_skips(is_star=True)
-euromillions.skips_for_last_12_draws()
 euromillions.get_natural_rotations(is_star=True)
-euromillions.numbers_clasification()
 
-numbers_choice = Criteria()
-numbers_choice.year_criterion()
-numbers_choice.rotation_criterion()
-numbers_choice.position_criterion()
-numbers_choice.group_criterion()
-numbers_choice.numbers_of_tomorrow()
+print(euromillions.aprox_rotation)
+print(euromillions.exact_rotation)

@@ -1,3 +1,5 @@
+"""Main of the proyect, in order to obtain the recommended numbers. This data is the start point of for to make the lottery tickets"""
+
 # Standard Libraries of Python
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
@@ -9,10 +11,10 @@ import numpy as np
 np.set_printoptions(precision=5)
 
 # Libraries made for this Proyect
-from database.clean_database import database
-from data_analisys.new_functions import draw_generator,Analysis,Criteria
+from src.parse import Criteria
 
-euromillions = Analysis()
+euromillions = Criteria()
+
 euromillions.groups_info()
 euromillions.apply_transformation()
 euromillions.count_skips()
@@ -20,9 +22,11 @@ euromillions.skips_for_last_12_draws()
 euromillions.get_natural_rotations()
 euromillions.numbers_clasification()
 
-numbers_choice = Criteria()
-numbers_choice.year_criterion()
-numbers_choice.rotation_criterion()
-numbers_choice.position_criterion()
-numbers_choice.group_criterion()
-numbers_choice.numbers_of_tomorrow()
+euromillions.year_criterion()
+euromillions.rotation_criterion()
+euromillions.position_criterion()
+euromillions.group_criterion()
+euromillions.numbers_of_tomorrow()
+
+print(euromillions.recommended_numbers)
+print(euromillions.not_recommended_numbers)

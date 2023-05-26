@@ -12,42 +12,66 @@ from pandas import DataFrame
 np.set_printoptions(precision=5)
 
 # Libraries made for this Proyect
-from database.clean_database import database
+from data.cleaning import database
 
 def draw_generator(size):
     for draw in range(12,size):
         yield draw
 
 def games_7(column):
-    games_dict = {0: 1, 1: 1, 2: 0.75, 3: 0.65, 4: 0.55, 5: 0.45, 6: 0.35, 7: 0.25}
+    games_dict = {
+        0: 1,
+        1: 1,
+        2: 0.75,
+        3: 0.65,
+        4: 0.55,
+        5: 0.45,
+        6: 0.35,
+        7: 0.25
+    }
     return games_dict.get(column,0)
 
 def games_12(column):
-    games_dict = {8: 0.65, 9: 0.55, 10: 0.45, 11: 0.35, 12: 0.25}
+    games_dict = {
+        8: 0.65,
+        9: 0.55,
+        10: 0.45,
+        11: 0.35,
+        12: 0.25
+    }
     return games_dict.get(column,0)
 
-# Cache class for the fast calculations
+# Cache class for faster calculations in the loop that simulates results
 class Memoize:
-    def __init__(self, func):
+    def __init__(self,func):
         self.func = func
         self.cache = {}
 
-    def __get__(self, instance, owner):
-        bound_func = self.func.__get__(instance, owner)
+    def __get__(self,instance,owner):
+        bound_func = self.func.__get__(instance,owner)
         return self.__class__(bound_func)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self,*args,**kwargs):
         if (self.func, args, tuple(kwargs.items())) in self.cache:
             return self.cache[(self.func, args, tuple(kwargs.items()))]
         else:
-            result = self.func(*args, **kwargs)
+            result = self.func(*args,**kwargs)
             self.cache[(self.func, args, tuple(kwargs.items()))] = result
             return result
 
 # Main Object - Super Class
 class Analysis:
     def __init__(self,is_star=False):
-        self.scrap = database()
+        # Little temporary line to scrap or not scrap the website, in order to read the database directly from .parquet file
+        answer = int(input("Do you wish to scrap the database directly from the website? (Enter 1 for yes, 0 for no): "))
+
+        if answer == 1:
+            # Perform further testing with scraping
+            self.scrap = database()
+        else:
+            # Proceed without scraping and testing with .parquet saved file
+            self.scrap = pd.read_parquet('data/files/db.parquet')
+
         self.df = self.scrap.copy()
         self.df_stars = self.df.copy()
         self.df_stars = self.df.drop(
@@ -184,6 +208,7 @@ class Analysis:
             columns={0: 'median'}
         ).T.astype('float32')
 
+    @Memoize
     def __numbers_boolean(self,is_star=False):
         self.__control_condition(is_star)
         self.booleans_df = pd.DataFrame(False,columns=self._col,
@@ -198,7 +223,8 @@ class Analysis:
                 self._df[col_name].to_numpy()
                 [:, None] == self._col
             )
-
+    
+    @Memoize
     def count_skips(self,is_star=False):
         self.__numbers_boolean(is_star)
         mask = self.booleans_df == 0
@@ -457,7 +483,12 @@ class Criteria(Analysis):
             }
         )
 
-def clean_df(df: DataFrame,columns_id,name) -> DataFrame:
+class Tickets():
+    def __init__(self,euromillions):
+        self.recommended_numbers = euromillions.recommended_numbers
+        self.not_recommended_numbers = euromillions.not_recommended_numbers
+
+def clean_df_skips(df: DataFrame,columns_id,name) -> DataFrame:
     df.columns = columns_id
     df.columns.name = name
     df.index.name = 'Draws'
@@ -501,8 +532,8 @@ def combination_df(database,low_high_counts,odd_even_counts):
         low_high[i] = counts_l_h
         odd_even[i] = counts_o_e
     
-    low_high = clean_df(pd.DataFrame.from_dict(low_high, orient='index'), columns_id, 'L/H')
-    odd_even = clean_df(pd.DataFrame.from_dict(odd_even, orient='index'), columns_id, 'O/E')
+    low_high = clean_df_skips(pd.DataFrame.from_dict(low_high, orient='index'), columns_id, 'L/H')
+    odd_even = clean_df_skips(pd.DataFrame.from_dict(odd_even, orient='index'), columns_id, 'O/E')
     return low_high, odd_even
 
 def count_100_combinations(df, columns, combinations, name):
@@ -512,5 +543,5 @@ def count_100_combinations(df, columns, combinations, name):
         df_slice = df.iloc[i:i+100]
         counts = [df_slice[(df_slice[columns[0]] == combination[0]) & (df_slice[columns[1]] == combination[1])][columns[0]].count() for combination in combinations]
         count_dic[i+1] = dict(zip(combinations, counts))
-    df = clean_df(pd.DataFrame.from_dict(count_dic, orient='index'), columns_id, name)
+    df = clean_df_skips(pd.DataFrame.from_dict(count_dic, orient='index'), columns_id, name)
     return df

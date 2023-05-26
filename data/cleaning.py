@@ -8,8 +8,8 @@ from datetime import datetime
 import pandas as pd
 from pandas import DataFrame
 
-# Libraries proper of this proyect
-from database.scraping import euro_scraping
+# Libraries proper of this Proyect
+from data.scraping import euro_scraping
 
 def days_sum(day,change):
     date = day + change
@@ -26,17 +26,27 @@ def clean_df(df: DataFrame) -> DataFrame:
     'star_1': "int32",
     'star_2': "int32"
     }
+    
     df = df.astype(df_clean)
     return df
 
 def structure(data: DataFrame) -> DataFrame:
-    # Droping the dates column because of code that generate dates below
+    # Drop of dates column from scraping, because of the code that generate dates below
     data.drop('dates',axis=1,inplace=True)
 
     # Reestucture of database
     data = data.reindex(
-        columns=['draw', 'nro1', 'nro2', 'nro3', 'nro4', 'nro5', 'star_1', 'star_2']
-        )
+        columns=[
+            'draw',
+            'nro1',
+            'nro2',
+            'nro3',
+            'nro4',
+            'nro5',
+            'star_1',
+            'star_2'
+        ]
+    )
     
     # Adding the total of draws in the corresponding column
     data['draw'] = range(1,len(data)+1)
@@ -96,7 +106,8 @@ def structure(data: DataFrame) -> DataFrame:
     df_1 = pd.DataFrame(list(map(datetime.fromtimestamp,dates_1)))
     
     result = pd.concat([df,df_1],ignore_index=True) \
-        .rename(columns = {0: 'dates'})
+        .rename(columns = {0: 'dates'}
+    )
     dataframe = pd.concat([result, data],axis=1,join='inner')
     dataframe['dates'] = dataframe['dates'].dt.floor('d')
 
@@ -104,7 +115,7 @@ def structure(data: DataFrame) -> DataFrame:
 
     if answer == 1:
         # Save the .parquet file
-        dataframe.to_parquet('database/db.parquet')
+        dataframe.to_parquet('data/files/db.parquet')
         # Perform further testing without scraping
     else:
         # Proceed with scraping and testing without saving the file

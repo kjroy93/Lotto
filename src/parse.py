@@ -14,7 +14,7 @@ np.set_printoptions(precision=5)
 # Libraries made for this Proyect
 from data.cleaning import database
 
-def draw_generator(size):
+def draw_generator(size: int) -> int:
     for draw in range(12,size):
         yield draw
 
@@ -22,11 +22,11 @@ def games_7(column):
     games_dict = {
         0: 1,
         1: 1,
-        2: 0.75,
-        3: 0.65,
-        4: 0.55,
-        5: 0.45,
-        6: 0.35,
+        2: 1,
+        3: 1,
+        4: 1,
+        5: 0.65,
+        6: 0.45,
         7: 0.25
     }
     return games_dict.get(column,0)
@@ -40,6 +40,12 @@ def games_12(column):
         12: 0.25
     }
     return games_dict.get(column,0)
+
+def first_numbers(df_values:DataFrame ,df:DataFrame, idx:int) -> DataFrame:
+    selected_numbers = []
+    numbers = df_values
+    select_last_draw = numbers.loc[idx]
+    available_numbers = [number for number in select_last_draw if number in self.recommended_numbers['numbers'].values]
 
 # Cache class for faster calculations in the loop that simulates results
 class Memoize:
@@ -120,7 +126,7 @@ class Analysis:
                     index=range(0,863)
                 )       
         else:
-            raise ValueError("The assingned value it must be a DataFrame.")
+            raise ValueError("The assingned value must be a DataFrame.")
 
     @Memoize
     def groups_info(self):
@@ -241,16 +247,16 @@ class Analysis:
 
     def skips_for_last_12_draws(self):
         self.skips = range(0,19)
-        if len(self.counts) - 12 == 0:
-            last_12_draws = range(1,len(self.counts))
+        if len(self.counts) - 11 == 1:
+            last_12_draws = range(2,len(self.counts))
         else:
             last_12_draws = range(len(self.counts) - 11,len(self.counts) + 1)
 
         aus_12 = [
-            self.counts.loc[i,int(column)] 
+            self.counts.loc[i-1,int(column)] 
             for i in last_12_draws[0:12]
             for column in self.counts if self.counts.loc[i,int(column)] == 0
-            ]
+        ]
         
         counter_l_7 = [Counter(aus_12[25:60]).get(i,0) for i in self.skips]
         counter_l_12 = [Counter(aus_12).get(i,0) for i in self.skips]
@@ -363,7 +369,7 @@ class Criteria(Analysis):
             elif category == 2 and diff_aprox > 0:
                 rotation_criteria[number] = 1
                 cr = 1.00
-            elif category == 2 and diff_aprox > -1 and diff_aprox < 1 and len(self.best_numbers) < 17:
+            elif category == 2 and diff_aprox > -1 and diff_aprox < 0.60 and len(self.best_numbers) < 17:
                 x = (abs(diff_exact) * Decimal('100')) / Decimal(str(cr)) / Decimal('100') + Decimal(str(cr))
                 rotation_criteria[number] = float(x.quantize(Decimal('0.01'),rounding=ROUND_HALF_UP))
             else:
@@ -408,6 +414,8 @@ class Criteria(Analysis):
             orient='index',
             columns=['position_criteria']
         )
+        
+        self.skips_7_12.drop(self.skips_7_12.iloc[:,[2,3]],axis=1,inplace=True)
     
     def group_criterion(self):
         groups = [list(range(i,i+10)) for i in range(1,51,10)]
@@ -418,11 +426,11 @@ class Criteria(Analysis):
             1: 1,
             2: 1,
             3: 1,
-            4: 0.80,
-            5: 0.75,
-            6: 0.675,
-            7: 0.650,
-            8: 0.625,
+            4: 1,
+            5: 1,
+            6: 0.85,
+            7: 0.75,
+            8: 0.650,
             9: 0.6,
             10: 0.5
         }
@@ -487,6 +495,56 @@ class Tickets():
     def __init__(self,euromillions):
         self.recommended_numbers = euromillions.recommended_numbers
         self.not_recommended_numbers = euromillions.not_recommended_numbers
+        self.counts = euromillions.counts
+        self.last_draw = euromillions.last_draw
+    
+    @Memoize
+    def draw_skips(self) -> DataFrame:
+        self.d_skips = pd.DataFrame(columns=['nro1','nro2','nro3','nro4','nro5'])
+        for index, row in self.counts.iterrows():
+            new_row = []
+
+            for column, value in row.items():
+                if value == 0:
+                    try:
+                        aus = self.counts.loc[index - 1, column]
+                    except KeyError:
+                        aus = 0
+                    if pd.isna(aus):
+                        aus = 0
+                    new_row.append(aus)
+        
+            while len(new_row) < 5:
+                new_row.append(0)
+        
+            self.d_skips.loc[index] = new_row
+
+    def __df_numbers(self) -> DataFrame:
+        self._df_values = self.last_draw.groupby('skips')['number'].apply(lambda x: list(x)).reset_index().set_index('skips')
+        self._df_values = self._df_values.rename_axis('number').rename_axis(None)
+        self._df_values['number'] = self._df_values['number'].apply(lambda x: sorted(x))
+        return self._df_values['number']
+    
+    def __remove_number(self, df:DataFrame, number:int) -> DataFrame:
+        self.recommended_numbers = df.drop(df[df['numbers'] == number].index).reset_index(drop=True)
+        probability = 1 / len(df)
+        self.recommended_numbers['criteria'] = self.recommended_numbers['criteria'] * (1 + probability)
+        return self.recommended_numbers
+
+    def first_number(self):
+        self._selected_numbers = []
+        numbers = self.__df_numbers()
+        select_last_draw = numbers.loc[0]
+        available_numbers = [number for number in select_last_draw if number in self.recommended_numbers['numbers'].values]
+        if available_numbers:
+            selected_number = np.random.choice(available_numbers)
+            self._selected_numbers.append(selected_number)
+            self.__remove_number(self.recommended_numbers,selected_number)
+        else:
+            available_numbers = [number for number in select_last_draw if number in self.not_recommended_numbers['numbers'].values]
+            selected_number = np.random.choice(available_numbers)
+            self._selected_numbers.append(selected_number)
+            self.__remove_number(self.not_recommended_numbers,selected_number)
 
 def clean_df_skips(df: DataFrame,columns_id,name) -> DataFrame:
     df.columns = columns_id

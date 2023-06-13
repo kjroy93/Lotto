@@ -9,6 +9,7 @@ getcontext().prec = 5
 import pandas as pd
 import numpy as np
 from pandas import DataFrame
+from pandas import Series
 np.set_printoptions(precision=5)
 
 # Libraries made for this Proyect
@@ -40,12 +41,6 @@ def games_12(column):
         12: 0.25
     }
     return games_dict.get(column,0)
-
-def first_numbers(df_values:DataFrame ,df:DataFrame, idx:int) -> DataFrame:
-    selected_numbers = []
-    numbers = df_values
-    select_last_draw = numbers.loc[idx]
-    available_numbers = [number for number in select_last_draw if number in self.recommended_numbers['numbers'].values]
 
 # Cache class for faster calculations in the loop that simulates results
 class Memoize:
@@ -519,7 +514,7 @@ class Tickets():
         
             self.d_skips.loc[index] = new_row
 
-    def __df_numbers(self) -> DataFrame:
+    def __df_numbers(self) -> Series:
         self._df_values = self.last_draw.groupby('skips')['number'].apply(lambda x: list(x)).reset_index().set_index('skips')
         self._df_values = self._df_values.rename_axis('number').rename_axis(None)
         self._df_values['number'] = self._df_values['number'].apply(lambda x: sorted(x))

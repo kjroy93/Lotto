@@ -496,6 +496,7 @@ class Tickets():
         self.last_draw = euromillions.last_draw
         self._selected_numbers = []
 
+    @Memoize
     def draw_skips(self) -> DataFrame:
         self.d_skips = pd.DataFrame(columns=['nro1','nro2','nro3','nro4','nro5'])
         for index, row in self.counts.iterrows():
@@ -515,7 +516,8 @@ class Tickets():
                 new_row.append(0)
         
             self.d_skips.loc[index] = new_row
-        
+    
+    @Memoize
     def skips_evaluation(self) -> DataFrame:
         self.evaluation = pd.DataFrame(columns=['0','5','7','10','13'])
         counts = pd.DataFrame(0, index=self.d_skips.index, columns=self.evaluation.columns)

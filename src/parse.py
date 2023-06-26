@@ -486,13 +486,14 @@ class Criteria(Analysis):
             }
         )
 
+# Creation of the recommended tickets
 class Tickets():
-    def __init__(self,self):
-        self.recommended_numbers = self.recommended_numbers
-        self.not_recommended_numbers = self.not_recommended_numbers
-        self.counts = self.counts
-        self.skips_7_12 = self.skips_7_12
-        self.last_draw = self.last_draw
+    def __init__(self,euromillions):
+        self.recommended_numbers = euromillions.recommended_numbers
+        self.not_recommended_numbers = euromillions.not_recommended_numbers
+        self.counts = euromillions.counts
+        self.skips_7_12 = euromillions.skips_7_12
+        self.last_draw = euromillions.last_draw
         self._selected_numbers = []
 
     def draw_skips(self) -> DataFrame:

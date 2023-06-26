@@ -487,13 +487,14 @@ class Criteria(Analysis):
         )
 
 class Tickets():
-    def __init__(self,euromillions):
-        self.recommended_numbers = euromillions.recommended_numbers
-        self.not_recommended_numbers = euromillions.not_recommended_numbers
-        self.counts = euromillions.counts
-        self.last_draw = euromillions.last_draw
-    
-    @Memoize
+    def __init__(self,self):
+        self.recommended_numbers = self.recommended_numbers
+        self.not_recommended_numbers = self.not_recommended_numbers
+        self.counts = self.counts
+        self.skips_7_12 = self.skips_7_12
+        self.last_draw = self.last_draw
+        self._selected_numbers = []
+
     def draw_skips(self) -> DataFrame:
         self.d_skips = pd.DataFrame(columns=['nro1','nro2','nro3','nro4','nro5'])
         for index, row in self.counts.iterrows():
@@ -513,6 +514,19 @@ class Tickets():
                 new_row.append(0)
         
             self.d_skips.loc[index] = new_row
+        
+    def skips_evaluation(self) -> DataFrame:
+        self.evaluation = pd.DataFrame(columns=['0','5','7','10','13'])
+        counts = pd.DataFrame(0, index=self.d_skips.index, columns=self.evaluation.columns)
+
+        counts['0'] = self.d_skips.apply(lambda row: row.eq(0).sum(),axis=1)
+        counts['5'] = self.d_skips.apply(lambda row: row.between(0,5).sum(),axis=1)
+        counts['7'] = self.d_skips.apply(lambda row: row.between(0,7).sum(),axis=1)
+        counts['10'] = self.d_skips.apply(lambda row: row.between(0,10).sum(),axis=1)
+        counts['13'] = self.d_skips.apply(lambda row: row.between(0,13).sum(),axis=1)
+
+        self.evaluation = pd.concat([self.evaluation,counts],ignore_index=True)
+        self.evaluation = self.evaluation.set_index(pd.RangeIndex(1, len(self.evaluation) + 1))
 
     def __df_numbers(self) -> Series:
         self._df_values = self.last_draw.groupby('skips')['number'].apply(lambda x: list(x)).reset_index().set_index('skips')
@@ -521,25 +535,32 @@ class Tickets():
         return self._df_values['number']
     
     def __remove_number(self, df:DataFrame, number:int) -> DataFrame:
-        self.recommended_numbers = df.drop(df[df['numbers'] == number].index).reset_index(drop=True)
-        probability = 1 / len(df)
-        self.recommended_numbers['criteria'] = self.recommended_numbers['criteria'] * (1 + probability)
-        return self.recommended_numbers
-
-    def first_number(self):
-        self._selected_numbers = []
-        numbers = self.__df_numbers()
-        select_last_draw = numbers.loc[0]
-        available_numbers = [number for number in select_last_draw if number in self.recommended_numbers['numbers'].values]
-        if available_numbers:
-            selected_number = np.random.choice(available_numbers)
-            self._selected_numbers.append(selected_number)
-            self.__remove_number(self.recommended_numbers,selected_number)
+        if df.equals(self.recommended_numbers):
+            self.recommended_numbers = df.drop(df[df['numbers'] == number].index).reset_index(drop=True)
+            probability = 1 / len(df)
+            self.recommended_numbers['criteria'] = self.recommended_numbers['criteria'] * (1 + probability)
+            return self.recommended_numbers
         else:
-            available_numbers = [number for number in select_last_draw if number in self.not_recommended_numbers['numbers'].values]
-            selected_number = np.random.choice(available_numbers)
-            self._selected_numbers.append(selected_number)
-            self.__remove_number(self.not_recommended_numbers,selected_number)
+            self.not_recommended_numbers = df.drop(df[df['numbers'] == number].index).reset_index(drop=True)
+            probability = 1 / len(df)
+            self.not_recommended_numbers['criteria'] = self.not_recommended_numbers['criteria'] * (1 + probability)
+            return self.not_recommended_numbers
+    
+    def __select_number(self, idx:int, numbers:DataFrame) -> int:
+        l = sorted(self.last_draw[self.last_draw['skips'] == idx]['number'].to_list())
+        available_numbers = numbers[numbers['numbers'].isin(l)]['numbers'].tolist()
+        if available_numbers:
+            n = np.random.choice(available_numbers)
+            self._selected_numbers.append(n)
+            self.__remove_number(numbers,n)
+
+    def first_number(self) -> int:
+        self.numbers = self.__df_numbers()
+        available_numbers = self.numbers.loc[0]
+        if available_numbers:
+            self.__select_number(0,self.recommended_numbers)
+        else:
+            self.__select_number(0,self.not_recommended_numbers)
 
 def clean_df_skips(df: DataFrame,columns_id,name) -> DataFrame:
     df.columns = columns_id

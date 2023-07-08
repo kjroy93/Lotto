@@ -1,9 +1,11 @@
 """New functions with the refactorization and vectorization process, with aplication of OOP"""
 
 # Standard Libraries of Python
+import random
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 getcontext().prec = 5
+from typing import Union
 
 # Dependencies
 import pandas as pd
@@ -15,11 +17,11 @@ np.set_printoptions(precision=5)
 # Libraries made for this Proyect
 from data.cleaning import database
 
-def draw_generator(size: int) -> int:
+def draw_generator(size:int) -> int:
     for draw in range(12,size):
         yield draw
 
-def games_7(column):
+def games_7(column:Series):
     games_dict = {
         0: 1,
         1: 1,
@@ -32,7 +34,7 @@ def games_7(column):
     }
     return games_dict.get(column,0)
 
-def games_12(column):
+def games_12(column:Series):
     games_dict = {
         8: 0.65,
         9: 0.55,
@@ -62,7 +64,7 @@ class Memoize:
 
 # Main Object - Super Class
 class Analysis:
-    def __init__(self,is_star=False):
+    def __init__(self,is_star:bool=False):
         # Little temporary line to scrap or not scrap the website, in order to read the database directly from .parquet file
         answer = int(input("Do you wish to scrap the database directly from the website? (Enter 1 for yes, 0 for no): "))
 
@@ -104,7 +106,7 @@ class Analysis:
         return self.df
     
     @db.setter
-    def db(self,modified_data,is_star=False):
+    def db(self,modified_data:DataFrame,is_star:bool=False):
         if isinstance(modified_data,pd.DataFrame):
             self.df = modified_data
             self.df.index = (range(1,len(modified_data)+1))
@@ -153,7 +155,7 @@ class Analysis:
             '10_games': (future_sg_10 > 0).sum()}
         ).T
 
-    def __control_condition(self,is_star=False):        
+    def __control_condition(self,is_star:bool=False):
         if not is_star:
             self._df = self.df
             self._col = self._numbers
@@ -180,7 +182,7 @@ class Analysis:
                 self.year_history.loc[row.dates,row[f'star_{draw}']] = 1
 
     @Memoize
-    def apply_transformation(self,is_star=False):
+    def apply_transformation(self,is_star:bool=False):
         self.__control_condition(is_star)
         self.year_history = pd.DataFrame(columns=self._col,
             index=np.arange(
@@ -210,7 +212,7 @@ class Analysis:
         ).T.astype('float32')
 
     @Memoize
-    def __numbers_boolean(self,is_star=False):
+    def __numbers_boolean(self,is_star:bool=False):
         self.__control_condition(is_star)
         self.booleans_df = pd.DataFrame(False,columns=self._col,
             index=self._id
@@ -226,7 +228,7 @@ class Analysis:
             )
     
     @Memoize
-    def count_skips(self,is_star=False):
+    def count_skips(self,is_star:bool=False):
         self.__numbers_boolean(is_star)
         mask = self.booleans_df == 0
         reset_mask = self.booleans_df == 1
@@ -236,7 +238,8 @@ class Analysis:
         result = pd.DataFrame(
             result,
             index=self._id,
-            columns=self._col)
+            columns=self._col
+        )
         df_t = result != 0
         self.counts = df_t.cumsum()-df_t.cumsum().where(~df_t).ffill().fillna(0).astype(int)
 
@@ -262,7 +265,7 @@ class Analysis:
             }
         )
 
-    def __total_average_hits(self,is_star=False,aprox=False):
+    def __total_average_hits(self,is_star:bool=False,aprox=False):
         self.__control_condition(is_star)
         divide = 2 if is_star else 5
         self.average = self.hits.apply(lambda hits: hits / len(self._df) / divide).iloc[0]
@@ -271,11 +274,11 @@ class Analysis:
         else:
             return Decimal(self.average.sum()) / Decimal(len(self._col))
 
-    def m_hits(self,is_star=False,aprox=False):
+    def m_hits(self,is_star:bool=False,aprox=False):
         min_hits = self.__total_average_hits(is_star,aprox)
         return min_hits * Decimal(int(self.hits.iloc[0,0])) / Decimal(float(self.average.iat[0]))
 
-    def __natural_rotation(self,is_star=False,aprox=False):
+    def __natural_rotation(self,is_star:bool=False,aprox=False):
         self.__control_condition(is_star)
         self.__total_average_hits(is_star,aprox)
         rotation = pd.DataFrame(
@@ -288,11 +291,11 @@ class Analysis:
         rotation['difference'] = rotation['hits'] - rotation['minimal_hits_needed']
         return rotation
 
-    def get_natural_rotations(self,is_star=False):
+    def get_natural_rotations(self,is_star:bool=False):
         self.exact_rotation = self.__natural_rotation(is_star,aprox=False)
         self.aprox_rotation = self.__natural_rotation(is_star,aprox=True)
 
-    def numbers_clasification(self,is_star=False):
+    def numbers_clasification(self,is_star:bool=False):
         self.__control_condition(is_star)
         self.best_numbers = self.aprox_rotation.loc[
             self.aprox_rotation['hits'] > self.aprox_rotation['minimal_hits_needed']
@@ -488,7 +491,7 @@ class Criteria(Analysis):
 
 # Creation of the recommended tickets
 class Tickets():
-    def __init__(self,euromillions):
+    def __init__(self,euromillions:object):
         self.recommended_numbers = euromillions.recommended_numbers
         self.not_recommended_numbers = euromillions.not_recommended_numbers
         self.counts = euromillions.counts
@@ -496,7 +499,6 @@ class Tickets():
         self.last_draw = euromillions.last_draw
         self._selected_numbers = []
 
-    @Memoize
     def draw_skips(self) -> DataFrame:
         self.d_skips = pd.DataFrame(columns=['nro1','nro2','nro3','nro4','nro5'])
         for index, row in self.counts.iterrows():
@@ -516,8 +518,7 @@ class Tickets():
                 new_row.append(0)
         
             self.d_skips.loc[index] = new_row
-    
-    @Memoize
+        
     def skips_evaluation(self) -> DataFrame:
         self.evaluation = pd.DataFrame(columns=['0','5','7','10','13'])
         counts = pd.DataFrame(0, index=self.d_skips.index, columns=self.evaluation.columns)
@@ -537,33 +538,80 @@ class Tickets():
         self._df_values['number'] = self._df_values['number'].apply(lambda x: sorted(x))
         return self._df_values['number']
     
-    def __remove_number(self, df:DataFrame, number:int) -> DataFrame:
-        if df.equals(self.recommended_numbers):
-            self.recommended_numbers = df.drop(df[df['numbers'] == number].index).reset_index(drop=True)
-            probability = 1 / len(df)
-            self.recommended_numbers['criteria'] = self.recommended_numbers['criteria'] * (1 + probability)
+    def suggested_numbers(self) -> list:
+        zero_selected = 1
+        recommended_numbers_selected = 1
+        self.numbers = self.__df_numbers()
+        if not self.numbers:
+            raise ValueError("There is no available numbers to select. Please, check the Series with the suggested numbers")
+        first_number = self.numbers.loc[0]
+        self.__select_number(first_number,0,self.recommended_numbers)
+        while recommended_numbers_selected < 6:
+            if zero_selected <= 2:
+                skips_values = self.skips_7_12[self.skips_7_12['7'] == 0].index.to_list()
+                value = random.choice(skips_values)
+                self.__select_number(self.numbers,value,self.recommended_numbers)
+                zero_selected += 1
+                recommended_numbers_selected += 1
+            else:
+                skips_values = self.last_draw['skips'].unique().tolist()
+                value = random.choice(skips_values)
+                skip_selected = self.skips_7_12[self.skips_7_12['7'] == value].index.to_list()
+            idx = np.random.choice(skip_selected)
+            if idx > 12 and len(self.last_draw[self.last_draw['skips'] < 12]) < 39:
+                self.__select_number(idx,self.recommended_numbers)
+            else:
+                idx = np.random.choice(range(13),size=1)
+                self.__select_number(idx,self.recommended_numbers)
+
+    def __select_number(self, numbers_list:list, idx:int, n_category:DataFrame) -> int:
+        self._s_n = 1
+        available_numbers = n_category[n_category['numbers'].isin(numbers_list)]['numbers'].tolist()
+        match idx:
+            case 0:
+                if not available_numbers:
+                    raise ValueError("There is no available numbers to select. Please, check the Series with the suggested numbers")
+                elif available_numbers:
+                    self.__operation(available_numbers,n_category)
+                elif not available_numbers:
+                    n_category = self.not_recommended_numbers
+                    available_numbers = n_category[n_category['numbers'].isin(numbers_list)]['numbers'].tolist()
+                    self.__operation(available_numbers,n_category)
+            case _:
+                if not available_numbers:
+                    raise ValueError("There is no available numbers to select. Please, check the Series with the suggested numbers")
+                elif available_numbers and self._s_n <= 2:
+                    self.__operation(available_numbers,n_category,self._s_n)
+                    self._s_n += 1
+                else:
+                    self.__operation(available_numbers,n_category)
+
+    def __operation(self, available_numbers:list, n_category:DataFrame, s_n:int=None) -> list:
+        if s_n is None:
+            selected_number = np.random.choice(available_numbers)
+        elif s_n <= 2:
+            RNG = random.randint(1,2)
+            selected_number = np.random.choice(available_numbers,size=RNG,replace=False)
+        self._selected_numbers.append(selected_number)
+        self.__remove_number(selected_number,n_category)
+
+    def __remove_number(self, number:int, n_category:DataFrame) -> DataFrame:
+        if n_category.equals(self.recommended_numbers):
+            n_category.drop(n_category[n_category['numbers'] == number].index,inplace=True)
+            n_category = n_category.reset_index(drop=True)
+            self.recommended_numbers = self.__probability(n_category)
             return self.recommended_numbers
         else:
-            self.not_recommended_numbers = df.drop(df[df['numbers'] == number].index).reset_index(drop=True)
-            probability = 1 / len(df)
-            self.not_recommended_numbers['criteria'] = self.not_recommended_numbers['criteria'] * (1 + probability)
+            n_category = self.not_recommended_numbers
+            n_category.drop(n_category[n_category['numbers'] == number].index,inplace=True)
+            n_category = n_category.reset_index(drop=True)
+            self.not_recommended_numbers = self.__probability(n_category)
             return self.not_recommended_numbers
     
-    def __select_number(self, idx:int, numbers:DataFrame) -> int:
-        l = sorted(self.last_draw[self.last_draw['skips'] == idx]['number'].to_list())
-        available_numbers = numbers[numbers['numbers'].isin(l)]['numbers'].tolist()
-        if available_numbers:
-            n = np.random.choice(available_numbers)
-            self._selected_numbers.append(n)
-            self.__remove_number(numbers,n)
-
-    def first_number(self) -> int:
-        self.numbers = self.__df_numbers()
-        available_numbers = self.numbers.loc[0]
-        if available_numbers:
-            self.__select_number(0,self.recommended_numbers)
-        else:
-            self.__select_number(0,self.not_recommended_numbers)
+    def __probability(self,n_category:DataFrame) -> DataFrame:
+            probability = 1 / len(n_category)
+            n_category['criteria'] = n_category['criteria'] * (1 + probability)
+            return n_category
 
 def clean_df_skips(df: DataFrame,columns_id,name) -> DataFrame:
     df.columns = columns_id

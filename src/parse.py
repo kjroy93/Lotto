@@ -618,17 +618,17 @@ class Tickets():
             self.__sum_selected_number(selected_number)
     
     def __remove_number(self, value: np.int32 | list, n_category: DataFrame) -> DataFrame:
+        category = self.euromillions.recommended_numbers if n_category.equals(self.euromillions.recommended_numbers) else self.euromillions.not_recommended_numbers
+        category = category.drop(category[category['numbers'] == value].index).reset_index(drop=True)
+        category = self.__probability(category)
+
         if n_category.equals(self.euromillions.recommended_numbers):
-            self.euromillions.recommended_numbers = self.euromillions.recommended_numbers.drop(
-                self.euromillions.recommended_numbers.loc[self.euromillions.recommended_numbers['numbers'] == value].index).reset_index(drop=True)
-            self.euromillions.recommended_numbers = self.__probability(self.euromillions.recommended_numbers)
-            return self.euromillions.recommended_numbers
+            self.euromillions.recommended_numbers = category
         else:
-            self.euromillions.not_recommended_numbers = self.euromillions.not_recommended_numbers.drop(
-                self.euromillions.not_recommended_numbers.loc[self.euromillions.not_recommended_numbers['numbers'] == value].index).reset_index(drop=True)
-            self.euromillions.not_recommended_numbers = self.__probability(self.euromillions.not_recommended_numbers)
-            return self.euromillions.not_recommended_numbers
-    
+            self.euromillions.not_recommended_numbers = category
+
+        return category
+
     def __probability(self, n_category: DataFrame) -> DataFrame:
         probability = 1 / len(n_category)
         n_category['criteria'] = n_category['criteria'] * (1 + probability)

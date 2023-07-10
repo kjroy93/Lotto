@@ -11,7 +11,7 @@ from pandas import DataFrame
 # Libraries proper of this Proyect
 from data.scraping import euro_scraping
 
-def days_sum(day,change):
+def days_sum(day,change) -> float:
     date = day + change
     return date
 

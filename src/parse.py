@@ -116,7 +116,7 @@ class Analysis:
 
         assert modified_data is not None and isinstance(modified_data,DataFrame), "modified_data must be a DataFrame"
 
-        # DataFrame with part of the information, in order to execute the loop to determine de % of success of method
+        # DataFrame with part of the information, in order to execute the loop to determine the % success of method
         self.df = modified_data
 
         # Modifing the range from __init__
@@ -255,17 +255,19 @@ class Analysis:
     def count_skips(self, is_star: bool = False) -> DataFrame:
         self.__numbers_boolean(is_star)
 
-        # We create a mask in the positions where the value is 0 and 1
+        # We create a mask in the positions where the value is 0 and 1: It will be True where the values are 0, and False where the values are equal to 1
         mask = self.booleans_df == 0
+
+        # Another mask, where the value equals 1 is True (where tehe count restart itself) and False in the rest of positions
         reset_mask = self.booleans_df == 1
 
-        # Mask variable contain booleans where True means skip and False, means no skip
+        # Mask variable contain booleans where True means skip and False means no skip
         cumulative_sum = np.cumsum(mask)
 
         # Puts a 0 in the True spots of reset_mask.
         cumulative_sum[reset_mask] = 0
 
-        # This condition evaluates if the elements in self.booleans_df are equal to 0, assigning them a (1) in the corresponding position. If is not 0, it assing the value of the cumulative sum
+        # This condition evaluates: if the elements in self.booleans_df are equal to 0, assigning them a (1) in the corresponding position. If is not 0, it assing the value of the cumulative sum
         result = np.where(self.booleans_df == 0, 1, cumulative_sum)
 
         result = pd.DataFrame(
@@ -274,7 +276,7 @@ class Analysis:
             columns=self._col
         )
 
-        # Creates a new DataFrame with booleans. The bool will be True where the values is not 0. The others positions will be False
+        # Creates a new DataFrame with booleans. The bool will be True where the values is not 0. The other positions will be False
         df_t = result != 0
 
         # This line calculates the cumsum of the array. With the method 'where', it puts a NaN where is a True, and then move the results to the next row vertically. Then, fills the NaN with 0 and converts all the frame to int
@@ -533,7 +535,7 @@ class Criteria(Analysis):
         )
 
 # Classes to be defined
-class Tickets():
+class Tickets:
     def __init__(self, euromillions: Criteria) -> object | DataFrame | int:
         # Inherits all the instances of Euro Millions
         self.euromillions = euromillions
@@ -558,7 +560,8 @@ class Tickets():
         self._df_values = self._df_values.rename_axis('number').rename_axis(None)
         self._df_values['number'] = self._df_values['number'].apply(lambda x: sorted(x))
         return self._df_values['number']
-
+    
+    @Memoize
     def draw_skips(self) -> DataFrame:
         # DataFrame to be populated
         self.d_skips = pd.DataFrame(columns=['nro1','nro2','nro3','nro4','nro5'])
@@ -583,7 +586,8 @@ class Tickets():
                 new_row.append(0)
         
             self.d_skips.loc[index] = new_row
-        
+
+    @Memoize 
     def skips_evaluation(self) -> DataFrame:
         self.evaluation = pd.DataFrame(columns=['0','5','7','10','13'])
         counts = pd.DataFrame(0, index=self.d_skips.index, columns=self.evaluation.columns)

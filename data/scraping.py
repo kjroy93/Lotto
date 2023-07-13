@@ -1,4 +1,4 @@
-"""Scrapping functions"""
+"""Scrapping function"""
 
 # Standard libraries of Python
 from time import gmtime

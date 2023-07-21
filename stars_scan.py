@@ -1,4 +1,4 @@
-"""Main of the proyect, in order to obtain the recommended stars. This data is going to append to each lottery ticket"""
+"""This file gives you information about the stars. Future selection pending"""
 
 # Libraries made for this Proyect
 from src.parse import Criteria

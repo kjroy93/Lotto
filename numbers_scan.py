@@ -1,4 +1,4 @@
-"""Main of the proyect, in order to obtain the recommended numbers. This data is the start point of for to make the lottery tickets"""
+"""This file gives you the numbers to be selected"""
 
 # Libraries made for this Proyect
 from src.parse import Criteria

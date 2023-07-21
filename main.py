@@ -1,4 +1,4 @@
-"""Main of the proyect, in order to obtain the recommended numbers. This data is the start point of for to make the lottery tickets"""
+"""This is the start point of for to make the lottery tickets"""
 
 # Standard Libraries of Python
 import itertools
@@ -13,3 +13,10 @@ lotto.draw_skips()
 lotto.skips_evaluation()
 lotto.first_number()
 lotto.suggested_numbers()
+
+print(lotto._selected_numbers)
+
+tickets = itertools.combinations(lotto._selected_numbers,5)
+
+for combination in tickets:
+    print(combination)

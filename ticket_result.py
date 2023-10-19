@@ -39,8 +39,6 @@ for draw in draw_generator(size):
     euromillions.numbers_of_tomorrow()
 
     lotto = Tickets(euromillions)
-    lotto.draw_skips()
-    lotto.skips_evaluation()
     lotto.first_number()
     lotto.suggested_numbers()
 

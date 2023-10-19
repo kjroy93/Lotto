@@ -4,6 +4,7 @@
 import random
 from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP, getcontext
+from typing import Union, Literal
 getcontext().prec = 5
 
 # Dependencies
@@ -20,7 +21,7 @@ def draw_generator(size:int) -> int:
     for draw in range(12,size):
         yield draw
 
-def games_7(column:Series) -> pd.DataFrame.columns:
+def games_7(column: Series) -> Series:
     games_dict = {
         0: 1,
         1: 1,
@@ -33,7 +34,7 @@ def games_7(column:Series) -> pd.DataFrame.columns:
     }
     return games_dict.get(column,0)
 
-def games_12(column:Series) -> pd.DataFrame.columns:
+def games_12(column: Series) -> Series:
     games_dict = {
         8: 0.65,
         9: 0.55,
@@ -77,7 +78,8 @@ class Analysis:
         self.df = self.scrap.copy()
         self.df_stars = self.df.copy()
 
-        # Modification of original DataFrame to contain the record of stars at the beginning of a certain draw, becuase of a change in the rules of the game. Check cleaning file.
+        # Modification of original DataFrame to contain the record of stars at the beginning of a certain draw.
+        # Change in the rules of the game. Check cleaning file.
         self.df_stars = self.df.drop(
             columns=['nro1','nro2','nro3','nro4','nro5'],
             index=range(0,863)
@@ -107,6 +109,75 @@ class Analysis:
         self._col_df = range(1,6) # Selection of the first five (5) numbers. First columns of the main DataFrame self.scrap
         self._col_stars_df = range(1,3) # Selection of the two (2) stars. Last two (2) columns of the main DataFrame self.scrap
 
+    def __control_condition(self, is_star: bool = False) -> DataFrame | range:
+        # Function to improve readability of the code, by simplify the DataFrame and ranges in each particular case
+        # Check __init__
+        if not is_star:
+            self._df = self.df # DataFrame
+            self._col = self._numbers # Range
+            self._id = self._draws # Range
+            self._col_data = self._col_df # Range
+        else:
+            self._df = self.df_stars # DataFrame
+            self._col = self._stars # Range
+            self._id = self._draws_stars # Range
+            self._col_data = self._col_stars_df # Range
+    
+    def __transformation_into_columns(self, row: pd.Index) -> DataFrame:
+        for draw in range(1,6):
+            if not np.isnan(self.year_history.loc[row.dates,row[f'nro{draw}']]):
+                self.year_history.loc[row.dates,row[f'nro{draw}']] += 1
+            else:
+                self.year_history.loc[row.dates,row[f'nro{draw}']] = 1
+
+    def __stars_transformation_into_columns(self, row: pd.Index) -> DataFrame:
+        for draw in range(1,3):
+            if not np.isnan(self.year_history.loc[row.dates,row[f'star_{draw}']]):
+                self.year_history.loc[row.dates,row[f'star_{draw}']] += 1
+            else:
+                self.year_history.loc[row.dates,row[f'star_{draw}']] = 1
+
+    def __total_average_hits(self, is_star: bool = False, aprox: bool = False) -> int:
+        self.__control_condition(is_star)
+        divide = 2 if is_star else 5
+        self.average = self.hits.apply(lambda hits: hits / len(self._df) / divide).iloc[0]
+        if aprox:
+            return Decimal(self.average.sum()) / Decimal(len(self._col)) + Decimal(0.001)
+        else:
+            return Decimal(self.average.sum()) / Decimal(len(self._col))
+
+    def __natural_rotation(self,is_star: bool = False,aprox: bool = False) -> DataFrame:
+        self.__control_condition(is_star)
+        self.__total_average_hits(is_star,aprox)
+
+        rotation = pd.DataFrame(
+            {'hits': self.hits.iloc[0],
+            'average_of_numbers': self.average,
+            'total_average': self.__total_average_hits(is_star,aprox),
+            'minimal_hits_needed': self.m_hits(is_star,aprox)},
+            index=self._col)
+        
+        rotation['difference'] = rotation['hits'] - rotation['minimal_hits_needed']
+        return rotation
+
+    @Memoize
+    def __numbers_boolean(self, is_star: bool = False) -> DataFrame:
+        self.__control_condition(is_star)
+
+        self.booleans_df = pd.DataFrame(False,columns=self._col,
+            index=self._id
+        )
+
+        for i in self._col_data:
+            if not is_star:
+                col_name = f'nro{i}'
+            else:
+                col_name = f'star_{i}'
+                
+            self.booleans_df = self.booleans_df | (self._df[col_name].to_numpy()[:, None] == self._col)
+        
+        return self.booleans_df
+    
     @property
     def db(self) -> DataFrame:
         return self.df
@@ -137,7 +208,7 @@ class Analysis:
 
     @Memoize
     def groups_info(self) -> DataFrame:
-        # Because of the amount of number in the primary array, we just take this counter for the first five (5) numbers
+        # Because of the amount of columns and data in the primary array, we just take this counter for the first five (5) numbers
         winning_numbers = self.df.drop(
             columns=['dates','star_1','star_2']
         )
@@ -153,15 +224,18 @@ class Analysis:
             for i,row in winning_numbers.iterrows()
         }
 
-        # Creation of DataFrame from dictionary
         self.groups = pd.DataFrame.from_dict(
             results,
             orient='index'
         )
 
+        # Set the five (5) arrays of numbers
         self.groups.columns = [f'{i}_to_{i+9}' for i in range(1,51,10)]
-        
+
+        # Actual situation of array population
         present_sg_10 = self.groups.iloc[-10:]
+
+        # DataFrame for future reference, in order to exclude groups of numbers
         future_sg_10 = self.groups.iloc[-9:]
 
         self.present_groups = pd.DataFrame({
@@ -171,33 +245,6 @@ class Analysis:
         self.future_groups = pd.DataFrame({
             '10_games': (future_sg_10 > 0).sum()}
         ).T
-
-    def __control_condition(self, is_star: bool = False) -> DataFrame | range:
-        # Function to improve readability of the code, by simplify the DataFrame and ranges in each particular case
-        if not is_star:
-            self._df = self.df # DataFrame
-            self._col = self._numbers # Range
-            self._id = self._draws # Range
-            self._col_data = self._col_df # Range
-        else:
-            self._df = self.df_stars # DataFrame
-            self._col = self._stars # Range
-            self._id = self._draws_stars # Range
-            self._col_data = self._col_stars_df # Range
-    
-    def __transformation_into_columns(self, row: pd.Index) -> DataFrame:
-        for draw in range(1,6):
-            if not np.isnan(self.year_history.loc[row.dates,row[f'nro{draw}']]):
-                self.year_history.loc[row.dates,row[f'nro{draw}']] += 1
-            else:
-                self.year_history.loc[row.dates,row[f'nro{draw}']] = 1
-
-    def __stars_transformation_into_columns(self, row: pd.Index) -> DataFrame:
-        for draw in range(1,3):
-            if not np.isnan(self.year_history.loc[row.dates,row[f'star_{draw}']]):
-                self.year_history.loc[row.dates,row[f'star_{draw}']] += 1
-            else:
-                self.year_history.loc[row.dates,row[f'star_{draw}']] = 1
 
     @Memoize
     def apply_transformation(self, is_star: bool = False) -> DataFrame:
@@ -233,32 +280,13 @@ class Analysis:
         ).T.astype('float32')
 
     @Memoize
-    def __numbers_boolean(self, is_star: bool = False) -> DataFrame:
-        # Condition to establish the DataFrame and corresponding ranges
-        self.__control_condition(is_star)
-
-        self.booleans_df = pd.DataFrame(False,columns=self._col,
-            index=self._id
-        )
-
-        for i in self._col_data:
-            if not is_star:
-                col_name = f'nro{i}'
-            else:
-                col_name = f'star_{i}'
-            self.booleans_df = self.booleans_df | (
-                self._df[col_name].to_numpy()
-                [:, None] == self._col
-            )
-    
-    @Memoize
     def count_skips(self, is_star: bool = False) -> DataFrame:
         self.__numbers_boolean(is_star)
 
         # We create a mask in the positions where the value is 0 and 1: It will be True where the values are 0, and False where the values are equal to 1
         mask = self.booleans_df == 0
 
-        # Another mask, where the value equals 1 is True (where tehe count restart itself) and False in the rest of positions
+        # Another mask, where the value equals 1 is True (where the count restart itself) and False in the rest of positions
         reset_mask = self.booleans_df == 1
 
         # Mask variable contain booleans where True means skip and False means no skip
@@ -281,6 +309,46 @@ class Analysis:
 
         # This line calculates the cumsum of the array. With the method 'where', it puts a NaN where is a True, and then move the results to the next row vertically. Then, fills the NaN with 0 and converts all the frame to int
         self.counts = df_t.cumsum()-df_t.cumsum().where(~df_t).ffill().fillna(0).astype(int)
+
+    @Memoize
+    def draw_skips(self):
+        # DataFrame to be populated
+        self.skips_history = pd.DataFrame(columns=['nro1','nro2','nro3','nro4','nro5'])
+
+        # Index to be updated. Row to be analize
+        for index, row in self.counts.iterrows():
+            # Row to be populated
+            new_row = []
+
+            for column, value in row.items():
+                # We search the value in each column of euromillions.counts, within the row of reference
+                if value == 0:
+                    try:
+                        aus = self.counts.loc[index - 1, column]
+                    except (KeyError,IndexError):
+                        aus = 0
+                    if pd.isna(aus):
+                        aus = 0
+                    new_row.append(aus)
+        
+            while len(new_row) < 5:
+                new_row.append(0)
+        
+            self.skips_history.loc[index] = new_row
+
+    @Memoize 
+    def skips_evaluation(self):
+        self.evaluation = pd.DataFrame(columns=['0','5','7','10','13'])
+        counts = pd.DataFrame(0, index=self.skips_history.index, columns=self.evaluation.columns)
+
+        counts['0'] = self.skips_history.apply(lambda row: row.eq(0).sum(),axis=1)
+        counts['5'] = self.skips_history.apply(lambda row: row.between(0,5).sum(),axis=1)
+        counts['7'] = self.skips_history.apply(lambda row: row.between(0,7).sum(),axis=1)
+        counts['10'] = self.skips_history.apply(lambda row: row.between(0,10).sum(),axis=1)
+        counts['13'] = self.skips_history.apply(lambda row: row.between(0,13).sum(),axis=1)
+
+        self.evaluation = pd.concat([self.evaluation,counts],ignore_index=True)
+        self.evaluation = self.evaluation.set_index(pd.RangeIndex(1, len(self.evaluation) + 1))
 
     def skips_for_last_12_draws(self) -> DataFrame:
         # This prevents the NaN and the inexistance of a previous game from the first one. When it is equal to 1, the range begins at the second game
@@ -313,32 +381,11 @@ class Analysis:
             }
         )
 
-    def __total_average_hits(self, is_star: bool = False, aprox: bool = False) -> int:
-        self.__control_condition(is_star)
-        divide = 2 if is_star else 5
-        self.average = self.hits.apply(lambda hits: hits / len(self._df) / divide).iloc[0]
-        if aprox:
-            return Decimal(self.average.sum()) / Decimal(len(self._col)) + Decimal(0.001)
-        else:
-            return Decimal(self.average.sum()) / Decimal(len(self._col))
+        return self.skips_7_12
 
-    def m_hits(self,is_star: bool = False, aprox: bool = False) -> int:
+    def m_hits(self, is_star: bool = False, aprox: bool = False) -> int:
         min_hits = self.__total_average_hits(is_star,aprox)
         return min_hits * Decimal(int(self.hits.iloc[0,0])) / Decimal(float(self.average.iat[0]))
-
-    def __natural_rotation(self,is_star: bool = False,aprox: bool = False) -> DataFrame:
-        self.__control_condition(is_star)
-        self.__total_average_hits(is_star,aprox)
-
-        rotation = pd.DataFrame(
-            {'hits': self.hits.iloc[0],
-            'average_of_numbers': self.average,
-            'total_average': self.__total_average_hits(is_star,aprox),
-            'minimal_hits_needed': self.m_hits(is_star,aprox)},
-            index=self._col)
-        
-        rotation['difference'] = rotation['hits'] - rotation['minimal_hits_needed']
-        return rotation
 
     def get_natural_rotations(self, is_star: bool = False) -> DataFrame:
         self.exact_rotation = self.__natural_rotation(is_star,aprox=False)
@@ -361,15 +408,25 @@ class Analysis:
 
 # Sub class for numbers analysis
 class Criteria(Analysis):
-    def __skips_last_draws(self):
+    def __size_control(self, df_recommended: DataFrame, df_not_recommended: DataFrame) -> DataFrame:
+        df = df_recommended.copy()
+        surplus_numbers = df.drop(index=range(0,25)).reset_index(drop=True)
+        self.not_recommended_numbers = pd.concat([df_not_recommended,surplus_numbers]).sort_values(by='criteria',ascending=False).reset_index(drop=True)
+        self.recommended_numbers = df_recommended.head(25)
+
+        return self.recommended_numbers, self.not_recommended_numbers
+    
+    def __skips_last_draws(self) -> DataFrame:
         last_draw = self.counts.iloc[-1].sort_values().to_frame()
         self.last_draw = last_draw.reset_index().rename(
             columns={'index':'number',
                     len(self.df):'skips'
                 }
             )
+        
+        return self.last_draw
 
-    def year_criterion(self):
+    def year_criterion(self) -> DataFrame:
         current_year = self.dates_construct['dates'].iloc[-1]
         year_criteria = {key: [] for key in self._numbers}
 
@@ -394,7 +451,7 @@ class Criteria(Analysis):
             columns=['year_criteria']
         )
 
-    def rotation_criterion(self):
+    def rotation_criterion(self) -> DataFrame:
         current_hits_needed = super().m_hits(aprox=True)
 
         self.rotation = next(
@@ -428,7 +485,7 @@ class Criteria(Analysis):
             columns=['rotation_criteria']
         )
 
-    def position_criterion(self):
+    def position_criterion(self) -> DataFrame:
         self.__skips_last_draws()
         self.skips_7_12[['values_7','values_12']] = self.skips_7_12[['7','12']].applymap(
             lambda x: games_7(x) if x <= 7 
@@ -464,7 +521,7 @@ class Criteria(Analysis):
         
         self.skips_7_12.drop(self.skips_7_12.iloc[:,[2,3]],axis=1,inplace=True)
 
-    def group_criterion(self):
+    def group_criterion(self) -> DataFrame:
         groups = [list(range(i,i+10)) for i in range(1,51,10)]
         self.future_groups.columns = [1,2,3,4,5]
         gp10 = {}
@@ -481,6 +538,7 @@ class Criteria(Analysis):
             9: 0.6,
             10: 0.5
         }
+
         for column,gp in self.future_groups.loc['10_games'].items():
             gp_range = tuple(range(1+10*(column-1),11+10*(column-1)))
             gp10[gp_range] = gp_values.get(gp,0)
@@ -505,16 +563,8 @@ class Criteria(Analysis):
             orient='index',
             columns=['group_criteria']
         )
-
-    def __size_control(self, df_recommended: DataFrame, df_not_recommended: DataFrame) -> DataFrame:
-        df = df_recommended.copy()
-        surplus_numbers = df.drop(index=range(0,25)).reset_index(drop=True)
-        self.not_recommended_numbers = pd.concat([df_not_recommended,surplus_numbers]).sort_values(by='criteria',ascending=False).reset_index(drop=True)
-        self.recommended_numbers = df_recommended.head(25)
-
-        return self.recommended_numbers, self.not_recommended_numbers
     
-    def numbers_of_tomorrow(self):
+    def numbers_of_tomorrow(self) -> DataFrame:
         df_numbers = pd.concat(
             [
                 self.years_criteria,
@@ -554,11 +604,8 @@ class Criteria(Analysis):
 
         if len(self.recommended_numbers) > 25:
             self.__size_control(self.recommended_numbers,self.not_recommended_numbers)
-        
-        #print(self.recommended_numbers)
-        #print(self.not_recommended_numbers)
 
-# Class that select the winning numbers and do the tickets. Initial population for Genetic Algorithm
+# Class that select the winning numbers and construct the tickets. Initial population for Genetic Algorithm
 class Tickets:
     def __df_numbers(self) -> Series:
         self._df_values = self.euromillions.last_draw.groupby('skips')['number'].apply(lambda x: list(x)).reset_index().set_index('skips')
@@ -581,7 +628,7 @@ class Tickets:
         return self.df_skips
 
     def __init__(self, euromillions: Criteria):
-        # Inherits all the instances of Euro Millions
+        # Store an instance of Euro Millions (Criteria) for access to its attributes and methods
         self.euromillions = euromillions
 
         # Copy of DataFrames for future reference
@@ -594,8 +641,13 @@ class Tickets:
         # List of clean indexes
         self.__clean_indexes(self.euromillions.skips_7_12,self.numbers)
 
-        # Counter control for double selection
-        self._s_d = 0
+        # Counter for cold numbers
+        self._cold = 0
+
+        # Counter/control for double selection
+        self._idx_dy = {}
+        self._idx_list = []
+        self.rng_count = 0
 
         # Counter for recommended numbers
         self._recommended_numbers_selected = 0
@@ -605,38 +657,15 @@ class Tickets:
 
         # List to store the selected numbers
         self._selected_numbers = []
-    
-    def __write_number(self, number: np.int32 | list, n_category: DataFrame):
-        if isinstance(number, np.ndarray) and number not in self._selected_numbers:
-            self._selected_numbers.extend(number)
-        elif isinstance(number, np.int32) and number not in self._selected_numbers:
-            self._selected_numbers.append(number)
-        else:
-            raise ValueError("The number already exist in list")
 
-        try:
-            for i in number:
-                self.__sum_selected_number(i)
-                self.__remove_number(i,n_category)
-        except TypeError:
-            self.__sum_selected_number(number)
-            self.__remove_number(number,n_category)
+    def __probability(self, n_category: DataFrame) -> DataFrame:
+        probability = 1 / len(n_category)
+        n_category['criteria'] = n_category['criteria'] * (1 + probability)
+        return n_category
 
-    def __sum_selected_number(self, selected_number: np.int32 | list):
-        if isinstance(selected_number, np.int32):
-            if self.euromillions.recommended_numbers['numbers'].isin([selected_number]).any():
-                self._recommended_numbers_selected += 1
-            else:
-                self._not_recommended_numbers_selected += 1
-        elif isinstance(selected_number, list):
-            if self.euromillions.recommended_numbers['numbers'].isin(selected_number).any():
-                self._recommended_numbers_selected += 1
-            else:
-                self._not_recommended_numbers_selected += 1
-
-    def __remove_number(self, value: np.int32 | int, n_category: DataFrame) -> DataFrame:
+    def __remove_number(self, number: np.int32 | int, n_category: DataFrame) -> DataFrame:
         category = self.recommended_numbers if n_category.equals(self.recommended_numbers) else self.not_recommended_numbers
-        category = category.drop(category[category['numbers'] == value].index).reset_index(drop=True)
+        category = category.drop(category[category['numbers'] == number].index).reset_index(drop=True)
         category = self.__probability(category)
 
         if n_category.equals(self.recommended_numbers):
@@ -646,83 +675,127 @@ class Tickets:
 
         return category
 
-    def __probability(self, n_category: DataFrame) -> DataFrame:
-        probability = 1 / len(n_category)
-        n_category['criteria'] = n_category['criteria'] * (1 + probability)
-        return n_category
-
-    @Memoize
-    def draw_skips(self):
-        # DataFrame to be populated
-        self.skips_history = pd.DataFrame(columns=['nro1','nro2','nro3','nro4','nro5'])
-
-        # Index to be updated. Row to be analize
-        for index, row in self.euromillions.counts.iterrows():
-            # Row to be populated
-            new_row = []
-
-            for column, value in row.items():
-                # We search the value in each column of euromillions.counts, within the row of reference
-                if value == 0:
-                    try:
-                        aus = self.euromillions.counts.loc[index - 1, column]
-                    except (KeyError,IndexError):
-                        aus = 0
-                    if pd.isna(aus):
-                        aus = 0
-                    new_row.append(aus)
-        
-            while len(new_row) < 5:
-                new_row.append(0)
-        
-            self.skips_history.loc[index] = new_row
-
-    @Memoize 
-    def skips_evaluation(self):
-        self.evaluation = pd.DataFrame(columns=['0','5','7','10','13'])
-        counts = pd.DataFrame(0, index=self.skips_history.index, columns=self.evaluation.columns)
-
-        counts['0'] = self.skips_history.apply(lambda row: row.eq(0).sum(),axis=1)
-        counts['5'] = self.skips_history.apply(lambda row: row.between(0,5).sum(),axis=1)
-        counts['7'] = self.skips_history.apply(lambda row: row.between(0,7).sum(),axis=1)
-        counts['10'] = self.skips_history.apply(lambda row: row.between(0,10).sum(),axis=1)
-        counts['13'] = self.skips_history.apply(lambda row: row.between(0,13).sum(),axis=1)
-
-        self.evaluation = pd.concat([self.evaluation,counts],ignore_index=True)
-        self.evaluation = self.evaluation.set_index(pd.RangeIndex(1, len(self.evaluation) + 1))
-
-    def __select_skip(self, zero_selection: bool = None) -> int:
-        if zero_selection:
-            skips = self.df_skips[self.df_skips['7'] == 0].index
-        else:
-            skips = self.df_skips[self.df_skips['7'] != 0].index
-
-        if len(self.euromillions.last_draw[self.euromillions.last_draw['skips'] <= 12]) > 38:
-            allowed_max_idx = 12
-        else:
-            allowed_max_idx = 100  # A high number that ensures no limit on index selection
-
-        self._cold = 0
-
-        while True:
-            idx = np.random.choice(skips, size=1, replace=False)[0]
-
-            if idx > allowed_max_idx:
-                if self._cold >= 2:
-                    skips = [i for i in skips if i <= allowed_max_idx]
-                    self._cold = 0  # Reset the _cold counter
-                else:
-                    self._cold += 1
+    def __sum_selected_number(self, selected_number: int):
+            if self.euromillions.recommended_numbers['numbers'].isin([selected_number]).any():
+                self._recommended_numbers_selected += 1
             else:
-                self._cold = 0  # Reset the _cold counter
+                self._not_recommended_numbers_selected += 1
+    
+    def __process_number(self, number: int | np.int32, n_category: DataFrame):
+        if isinstance(number, np.int32):
+            number = int(number)
+        
+        if number in self._selected_numbers:
+            raise ValueError("The number already exists in the list")
+        
+        self._selected_numbers.append(number)
+        self.__sum_selected_number(number)
+        self.__remove_number(number, n_category)
 
+    def __write_number(self, number: Union[np.int32,list,np.ndarray,int], n_category: DataFrame):
+        if isinstance(number, np.ndarray) or isinstance(number, list):
+            for num in number:
+                self.__process_number(num,n_category)
+        else:
+            self.__process_number(number,n_category)
+    
+    def __check_number(self, number: int) -> int:
+        idx = self.euromillions.last_draw.loc[self.euromillions.last_draw['number'] == number, 'skips'].tolist()
+
+        if idx:
+            result = idx[0]
+            assert isinstance(result,int), "There is no number as an answer. Please, select a new number"
+        else:
+            raise ValueError("The list is empty. Please, select a number again")
+
+        i = self.__check_idx(result,1)
+
+        if isinstance(i,int):
+            return number
+        else:
+            raise ValueError("There is no validation for the selected number. Please, select a new number")
+
+    def __check_idx(self, idx: int, increase: int, max_occurrences: int = 2) -> int:
+        match increase:
+            case 1:
+                if idx in self._idx_dy:
+                    self._idx_dy[idx] += 1
+                else:
+                    self._idx_dy[idx] = 1
+            case 2:
+                if idx in self._idx_dy:
+                    self._idx_dy[idx] += 2
+                else:
+                    self._idx_dy[idx] = 2
+
+        v_count = 2
+        counter = sum(1 for value in self._idx_dy.values() if value == v_count)
+
+        if counter > 2:
+            keys = [k for k,v in self._idx_dy.items() if v == counter]
+            ind = keys.index(idx)
+            raise ValueError(f"The index {ind} has been selected {max_occurrences} times. A new index must be selected")
+        else:
+            self._idx_list.append(idx)
             return idx
 
-    def __list_of_numbers(self, idx: pd.Index | int, n_category: DataFrame) -> list | DataFrame:
-        assert self.numbers is not None and not self.numbers.empty, "There are no available numbers to select. Please check the DataFrame from the last draw."
+    def __validation(self, type: Literal["idx","int"], number: Union[pd.Index,int], increase: int = 1) -> pd.Index|int:
+        assert type in ("idx","int"), "No valid string validation registered"
 
+        if type == "idx":
+            try:
+                self.__check_idx(number, increase)
+                return number
+            except ValueError:
+                raise ValueError(f"No index validation success")
+        
+        if type == "int":
+            try:
+                result = self.__check_number(number)
+                return result
+            except ValueError:
+                raise ValueError(f"No number validation success")
+
+    def __operation(self, available_numbers: list, idx: pd.Index | int, n_category: DataFrame) -> int:
+        match idx:
+            case 0:
+                rng = 1
+            case _:
+                rng = random.randint(1, 2)
+
+        if rng == 2 and len(available_numbers) < 2:
+            selected_number = np.random.choice(available_numbers,size=1,replace=False)[0]
+            self.__validation("idx",idx,1)
+            self.__write_number(selected_number,n_category)
+
+        elif rng == 2 and len(available_numbers) >= 2 and self.rng_count == 0:
+            if self._recommended_numbers_selected < 5:
+                selected_numbers = np.random.choice(available_numbers,size=rng,replace=False)
+                self.__validation("idx",idx,rng)
+                self.__write_number(selected_numbers,n_category)
+                self.rng_count += 1
+            else:
+                selected_number = np.random.choice(available_numbers,size=1,replace=False)[0]
+                self.__validation("idx",idx,1)
+                self.__write_number(selected_number,n_category)
+
+        elif rng == 2 and self.rng_count > 0:
+            selected_number = np.random.choice(available_numbers,size=1,replace=False)[0]
+            self.__validation("idx",idx,1)
+            self.__write_number(selected_number,n_category)
+
+        elif rng == 1 and len(available_numbers) > 0:
+            selected_number = np.random.choice(available_numbers,size=rng,replace=False)[0]
+            self.__validation("idx",idx,1)
+            self.__write_number(selected_number,n_category)
+
+    def __list_of_numbers(self, idx: pd.Index | int, n_category: DataFrame) -> tuple[list,DataFrame]:
+        assert self.numbers is not None and not self.numbers.empty, "There are no available numbers to select. Please check the DataFrame from the last_draw."
+
+        # We locate the row. The list will be created with the numbers in this location
         row = self.numbers.loc[0] if idx == 0 else self.numbers.loc[idx]
 
+        # Search if the number is in the DataFrame that determines the category
         if len(row) == 1:
             available_numbers = n_category[n_category['numbers'].isin(row)]['numbers'].tolist()
         elif len(row) > 1:
@@ -731,31 +804,35 @@ class Tickets:
 
         if available_numbers:
             return available_numbers, n_category
+        elif not available_numbers and idx > 18:
+            self._cold -= 1
+            raise ValueError("The list of numbers to be selected is empty.")
         else:
             raise ValueError("The list of numbers to be selected is empty.")
 
-    def __operation(self, available_numbers: list, idx: pd.Index | int, n_category: DataFrame, zero_selection: bool = None) -> int:
-        match idx:
-            case 0:
-                rng = 1
-            case _:
-                if self._s_d == 0 and self._s_d < 2:
-                    rng = random.randint(1,2)
-                else:
-                    rng = 1
-
-        if rng == 2 and self._s_d < 2 and len(available_numbers) >= 2:
-            selected_numbers = np.random.choice(available_numbers,size=rng,replace=False)
-            self._s_d += 3
-            self.__write_number(selected_numbers,n_category)
-
-        elif rng in [1,2] and len(available_numbers) > 0:
-            selected_number = np.random.choice(available_numbers,size=1,replace=False)[0]
-            self.__write_number(selected_number,n_category)
-
-    def __select_number(self, idx: pd.Index | int, n_category: DataFrame, zero_selection: bool = None) -> int:
+    def __select_number(self, idx: pd.Index | int, n_category: DataFrame) -> int:
         numbers, n_category = self.__list_of_numbers(idx,n_category)
-        self.__operation(numbers,idx,n_category,zero_selection)
+        self.__operation(numbers,idx,n_category)
+
+    def __select_skip(self, zero_selection: bool = None) -> int:
+        # Filters the indexes following the condition of zero_selection
+        skips = self.df_skips[self.df_skips['7'] == 0].index if zero_selection else self.df_skips[self.df_skips['7'] != 0].index
+
+        # Enstablish the max number of the indexes to be selected
+        allowed_max_idx = 18 if len(self.euromillions.last_draw[self.euromillions.last_draw['skips'] <= 12]) >= 39 else 100
+
+        idx = np.random.choice(skips, size=1, replace=False)[0]
+
+        if (idx > allowed_max_idx or (idx < allowed_max_idx and idx > 18)) and self._cold == 0:
+            self._cold += 1
+            return idx
+
+        if allowed_max_idx == 100 and idx > 18 and self._cold > 0:
+            skips = [i for i in skips if i < 19]
+            idx = np.random.choice(skips, size=1, replace=False)[0]
+            return idx
+        else:
+            return idx
 
     def first_number(self):
         try:
@@ -770,21 +847,26 @@ class Tickets:
             if zero_selected < 3:
                 idx = self.__select_skip(True)
             else:
-                self.df_skips = self.df_skips.drop(index=self.df_skips[self.df_skips.index >= 13].index)
                 idx = self.__select_skip()
 
             count = 0
             while True:
                 if count < 5:
                     try:
-                        self.__select_number(idx, self.recommended_numbers, zero_selection=(zero_selected < 3))
+                        self.__select_number(idx, self.recommended_numbers)
                         break
                     except ValueError:
                         count += 1
                         idx = self.__select_skip(zero_selection=(zero_selected < 3))
                 else:
-                    available_numbers = self.recommended_numbers["numbers"].unique().tolist()
-                    selected_number = np.random.choice(available_numbers,size=1,replace=False)[0]
+                    try:
+                        available_numbers = self.recommended_numbers["numbers"].unique().tolist()
+                        selected_number = np.random.choice(available_numbers,size=1,replace=False)[0]
+                        if self.__validation("int",selected_number) == int:
+                            break
+                    except ValueError:
+                        continue
+
                     self.__write_number(selected_number,self.recommended_numbers)
                     break
             

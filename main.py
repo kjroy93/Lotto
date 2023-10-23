@@ -7,9 +7,9 @@ import itertools
 import pandas as pd
 
 # Libraries made for this Proyect
-from src.backend.parse import Tickets
-from src.backend import numbers
-file_route = "data/files/"
+from backend.src.parse import Tickets
+from backend.src import numbers
+file_route = 'data/files/'
 
 euromillions = numbers.euromillions
 lotto = Tickets(euromillions)

@@ -11,7 +11,6 @@ import numpy as np
 
 # Libraries made for this Proyect
 from src.parse import draw_generator, Criteria, Tickets
-ruta_carpeta = 'data/simulation_result/'
 
 # Test of Euromillions Analysis
 start_time = time.time()

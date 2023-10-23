@@ -1,7 +1,7 @@
 """This file gives you the numbers to be selected"""
 
 # Libraries made for this Proyect
-from src.parse import Criteria
+from src.backend.parse import Criteria
 
 euromillions = Criteria()
 

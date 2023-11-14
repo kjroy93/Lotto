@@ -9,7 +9,7 @@ import pandas as pd
 from pandas import DataFrame
 
 # Libraries proper of this Proyect
-from data.scraping import euro_scraping
+from .scraping import euro_scraping
 
 def days_sum(day,change) -> float:
     date = day + change
@@ -30,7 +30,7 @@ def clean_df(df: DataFrame) -> DataFrame:
     df = df.astype(df_clean)
     return df
 
-def structure(data: DataFrame) -> DataFrame:
+def cleaning(data: DataFrame) -> DataFrame:
     # Drop of dates column from scraping, because of the code that generate dates below
     data.drop('dates',axis=1,inplace=True)
 
@@ -115,7 +115,7 @@ def structure(data: DataFrame) -> DataFrame:
 
     if answer == 1:
         # Save the .parquet file
-        dataframe.to_parquet('data/files/db.parquet')
+        dataframe.to_parquet('database/files/db.parquet')
         # Perform further testing without scraping
     else:
         # Proceed with scraping and testing without saving the file
@@ -125,5 +125,5 @@ def structure(data: DataFrame) -> DataFrame:
 
 def database() -> DataFrame:
     database = euro_scraping()
-    database = structure(database)
+    database = cleaning(database)
     return database

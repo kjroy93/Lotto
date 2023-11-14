@@ -7,16 +7,16 @@ import itertools
 import pandas as pd
 
 # Libraries made for this Proyect
-from backend.src.parse import Tickets
+from backend.src import pick_numbers
 from backend.src import numbers
-file_route = 'data/files/'
+file_route = 'database/files/'
 
 euromillions = numbers.euromillions
-lotto = Tickets(euromillions)
+lotto = pick_numbers.Selection(euromillions)
 lotto.first_number()
 lotto.suggested_numbers()
 
-print(lotto._selected_numbers)
+print(f'selected numbers: {lotto._selected_numbers}')
 
 tickets = itertools.combinations(lotto._selected_numbers,5)
 combinations = []

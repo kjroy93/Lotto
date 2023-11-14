@@ -7,15 +7,16 @@ import itertools
 import pandas as pd
 
 # Libraries made for this Proyect
-import numbers_scan
-from src.parse import Tickets
+from backend.src import pick_numbers
+from backend.src import numbers
+file_route = 'database/files/'
 
-euromillions = numbers_scan.euromillions
-lotto = Tickets(euromillions)
+euromillions = numbers.euromillions
+lotto = pick_numbers.Selection(euromillions)
 lotto.first_number()
 lotto.suggested_numbers()
 
-print(lotto._selected_numbers)
+print(f'selected numbers: {lotto._selected_numbers}')
 
 tickets = itertools.combinations(lotto._selected_numbers,5)
 combinations = []
@@ -28,4 +29,4 @@ print(combinations)
 
 df = pd.DataFrame(combinations,columns=['1','2','3','4','5'])
 df = df.iloc[:,0:6].apply(lambda x: pd.Series(sorted(x)),axis=1)
-df.to_csv('data/files/combinations.csv',index=False)
+df.to_csv(f'{file_route}combinations.csv',index=False)

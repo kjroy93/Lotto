@@ -1,7 +1,7 @@
 """This file gives you information about the stars. Future selection pending"""
 
 # Libraries made for this Proyect
-from src.parse import Criteria
+from .parse import Criteria
 
 euromillions = Criteria(is_star=True)
 

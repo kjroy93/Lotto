@@ -35,7 +35,7 @@ class Selection:
         return self.df_skips
 
     def __init__(self, euromillions: Criteria):
-        # Store an instance of Euro Millions (Criteria) for access to its attributes and methods
+        # Store an instance of Euro Millions (Criteria) for access to it´s attributes and methods
         self.euromillions = euromillions
 
         # Copy of DataFrames for future reference

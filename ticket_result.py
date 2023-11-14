@@ -10,8 +10,9 @@ from collections import Counter
 import numpy as np
 
 # Libraries made for this Proyect
-from src.parse import draw_generator, Criteria, Tickets
-ruta_carpeta = 'data/simulation_result/'
+from backend.src.functions import draw_generator
+from backend.src.parse import Criteria
+from backend.src import pick_numbers
 
 # Test of Euromillions Analysis
 start_time = time.time()
@@ -38,7 +39,7 @@ for draw in draw_generator(size):
     euromillions.group_criterion()
     euromillions.numbers_of_tomorrow()
 
-    lotto = Tickets(euromillions)
+    lotto = pick_numbers.Selection(euromillions)
     lotto.first_number()
     lotto.suggested_numbers()
 

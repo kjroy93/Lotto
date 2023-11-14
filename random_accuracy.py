@@ -9,8 +9,9 @@ from collections import Counter
 import numpy as np
 
 # Libraries made for this Proyect
-from src.parse import draw_generator, Criteria
-ruta_carpeta = 'data/simulation_result/'
+from backend.src.functions import draw_generator
+from backend.src.parse import Criteria
+file_route = 'database/simulation_result/'
 
 euromillions = Criteria()
 size = len(euromillions.scrap)

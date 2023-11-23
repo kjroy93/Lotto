@@ -441,7 +441,7 @@ class Criteria(Analysis):
         )
 
     def rotation_criterion(self) -> DataFrame:
-        current_hits_needed = super().m_hits(aprox=True)
+        current_hits_needed = super().get_min_hits(aprox=True)
 
         self.rotation = next(
             (draw for draw in range(len(self.df['draw'])+1,len(self.df['draw'])+10) 

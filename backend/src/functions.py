@@ -8,6 +8,24 @@ from pandas import DataFrame
 from pandas import Series
 np.set_printoptions(precision=5)
 
+# Cache class for faster calculations in the loop that simulates results
+class Memoize:
+    def __init__(self,func):
+        self.func = func
+        self.cache = {}
+
+    def __get__(self,instance,owner):
+        bound_func = self.func.__get__(instance,owner)
+        return self.__class__(bound_func)
+
+    def __call__(self,*args,**kwargs):
+        if (self.func, args, tuple(kwargs.items())) in self.cache:
+            return self.cache[(self.func, args, tuple(kwargs.items()))]
+        else:
+            result = self.func(*args,**kwargs)
+            self.cache[(self.func, args, tuple(kwargs.items()))] = result
+            return result
+
 def draw_generator(size:int) -> int:
     for draw in range(12,size):
         yield draw

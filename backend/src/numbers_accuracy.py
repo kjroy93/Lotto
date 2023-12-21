@@ -32,7 +32,7 @@ for draw in draw_generator(size):
     euromillions.count_skips()
     euromillions.skips_for_last_12_draws()
     euromillions.get_natural_rotations()
-    euromillions.numbers_clasification()
+    euromillions.get_numbers_clasification()
 
     euromillions.year_criterion()
     euromillions.rotation_criterion()

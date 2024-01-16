@@ -501,7 +501,7 @@ class Criteria(Analysis):
                 if len(self.last_draw.loc[self.last_draw['skips'] <= 12]) <= 38:
                     position_criteria[int(key)] = 1
                 else:
-                    position_criteria[int(key)] = 0.25
+                    position_criteria[int(key)] = 0.50
         
         self.position_criteria = pd.DataFrame.from_dict(
             position_criteria,

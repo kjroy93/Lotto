@@ -226,7 +226,7 @@ class Selection:
         skips = self.df_skips[self.df_skips['7'] == 0].index if zero_selection else self.df_skips[self.df_skips['7'] != 0].index
 
         # Enstablish the max number of the indexes to be selected
-        allowed_max_idx = 18 if len(self.euromillions.last_draw[self.euromillions.last_draw['skips'] <= 12]) >= 39 else 100
+        allowed_max_idx = 18 if len(self.euromillions.last_draw[self.euromillions.last_draw['skips'] <= 18]) >= 39 else 100
 
         idx = np.random.choice(skips, size=1, replace=False)[0]
 

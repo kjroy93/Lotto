@@ -75,12 +75,46 @@ class Analysis:
         return count
     
     @Memoize
-    def new_count_columns(self):
+    def define_low_high(self):
         # Columns to be considered from the main DataFrame
         selected_columns = self.df.columns[2:7]
         
-        self.df['L'] = self.__count(self.low_numbers,selected_columns)
-        self.df['H'] = self.__count(self.high_numbers,selected_columns)
+        self.df['low'] = self.__count(self.low_numbers,selected_columns)
+        self.df['high'] = self.__count(self.high_numbers,selected_columns)
+    
+    @Memoize
+    def define_odd_even(self):
+        self.df['odd'] = self.df.loc[:,['nro1','nro2','nro3','nro4','nro5']].apply(lambda row: sum(1 for number in row if number%2 != 0), axis=1)
+        self.df['even'] = 5 - self.df.loc[:,['odd']]
+    
+    @Memoize
+    def define_combinations_skips(self):
+        self.combinations_skips = self.df.iloc[:,[1,9,10,11,12]]
+        # Definir las combinaciones posibles (low, high)
+        combinations = [(1, 4), (2, 3), (3, 2), (4, 1), (5, 0), (0, 5)]
+
+        # Inicializamos las nuevas columnas para almacenar los días desde la última aparición
+        for comb in combinations:
+            col_name = f'days_since_{comb[0]}_{comb[1]}'
+            self.combinations_skips[col_name] = None
+
+        # Inicializamos el contador de días
+        days_since = {comb: 0 for comb in combinations}
+
+        # Iteramos sobre las filas para calcular los días desde la última aparición de cada combinación
+        for i in range(len(self.combinations_skips)):
+            for comb in combinations:
+                col_name = f'days_since_{comb[0]}_{comb[1]}'
+                
+                if (self.combinations_skips.loc[i, 'low'], self.combinations_skips.loc[i, 'high']) == comb:
+                    # Si la combinación actual coincide, reiniciamos el contador a 0
+                    days_since[comb] = 0
+                else:
+                    # Si no coincide, incrementamos el contador de días
+                    days_since[comb] += 1
+                
+                # Asignamos el valor del contador de días en la nueva columna
+                self.combinations_skips.loc[i, col_name] = days_since[comb]
 
     @property
     def db(self) -> DataFrame:
@@ -359,6 +393,7 @@ class Analysis:
 
         self.evaluation = pd.concat([self.evaluation,counts],ignore_index=True)
         self.evaluation = self.evaluation.set_index(pd.RangeIndex(1, len(self.evaluation) + 1))
+        self.evaluation_average = self.evaluation.apply(lambda column: float(Decimal(column.mean()).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))).to_frame().T
 
     def skips_for_last_12_draws(self) -> DataFrame:
         # This prevents the NaN and the inexistance of a previous game from the first one. When it is equal to 1, the range begins at the second game

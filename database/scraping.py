@@ -8,7 +8,6 @@ import pandas as pd
 import requests
 from pandas import DataFrame
 
-
 def euro_scraping() -> DataFrame:
     """Return all euromillones data"""
     

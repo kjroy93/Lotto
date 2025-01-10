@@ -1,6 +1,7 @@
 # Standard Libraries of Python
 import random
 from typing import Union, Literal
+from decimal import Decimal, ROUND_HALF_UP
 
 # Dependencies
 import pandas as pd
@@ -123,6 +124,7 @@ class Selection:
             raise ValueError("There is no validation for the selected number. Please, select a new number")
 
     def __check_idx(self, idx: int, increase: int, max_occurrences: int = 2) -> int:
+        counter = 0
         match increase:
             case 1:
                 if idx in self._idx_dy:
@@ -138,7 +140,7 @@ class Selection:
         v_count = 2
         counter = sum(1 for value in self._idx_dy.values() if value == v_count)
 
-        if counter > 2:
+        if counter == 2:
             keys = [k for k,v in self._idx_dy.items() if v == counter]
             ind = keys.index(idx)
             raise ValueError(f"The index {ind} has been selected {max_occurrences} times. A new index must be selected")
@@ -240,6 +242,9 @@ class Selection:
             return idx
         else:
             return idx
+    
+    def distribution_evaluation(self):
+        self.distribution = self.euromillions.evaluation.apply(lambda column: float(Decimal(column.mean()).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)), axis=0).to_frame().T
 
     def first_number(self):
         try:

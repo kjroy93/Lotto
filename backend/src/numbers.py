@@ -11,6 +11,8 @@ euromillions.count_skips()
 euromillions.skips_for_last_12_draws()
 euromillions.get_natural_rotations()
 euromillions.get_numbers_clasification()
+euromillions.draw_skips()
+euromillions.skips_evaluation()
 
 euromillions.year_criterion()
 euromillions.rotation_criterion()
@@ -20,3 +22,4 @@ euromillions.numbers_of_tomorrow()
 
 print(euromillions.recommended_numbers)
 print(euromillions.not_recommended_numbers)
+print(euromillions.evaluation)

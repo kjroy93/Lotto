@@ -5,6 +5,9 @@ from .parse import Criteria
 
 euromillions = Criteria()
 
+euromillions.define_odd_even()
+euromillions.define_low_high()
+euromillions.define_combinations_skips()
 euromillions.groups_info()
 euromillions.apply_transformation()
 euromillions.count_skips()

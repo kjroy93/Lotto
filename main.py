@@ -7,8 +7,8 @@ import itertools
 import pandas as pd
 
 # Libraries made for this Proyect
-from backend.src import pick_numbers
-from backend.src import numbers
+from backend.src import pick_numbers, pick_stars
+from backend.src import numbers, stars
 file_route = 'database/files/'
 
 euromillions = numbers.euromillions
@@ -22,7 +22,7 @@ tickets = itertools.combinations(lotto._selected_numbers,5)
 combinations = []
 
 for combination in tickets:
-    combinations.append(combination)
+	combinations.append(combination)
 
 print("these are the generated tickets")
 print(combinations)

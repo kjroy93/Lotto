@@ -383,14 +383,14 @@ class Analysis:
 
 	@Memoize 
 	def skips_evaluation(self):
-		self.evaluation = pd.DataFrame(columns=['0','5','7','10','13'])
+		self.evaluation = pd.DataFrame(columns=[0, 5, 7, 10, 13])
 		counts = pd.DataFrame(0, index=self.skips_history.index, columns=self.evaluation.columns)
 
-		counts['0'] = self.skips_history.apply(lambda row: row.eq(0).sum(),axis=1)
-		counts['5'] = self.skips_history.apply(lambda row: row.between(0,5).sum(),axis=1)
-		counts['7'] = self.skips_history.apply(lambda row: row.between(0,7).sum(),axis=1)
-		counts['10'] = self.skips_history.apply(lambda row: row.between(0,10).sum(),axis=1)
-		counts['13'] = self.skips_history.apply(lambda row: row.between(0,13).sum(),axis=1)
+		counts[0] = self.skips_history.apply(lambda row: row.eq(0).sum(),axis=1)
+		counts[5] = self.skips_history.apply(lambda row: row.between(0,5).sum(),axis=1)
+		counts[7] = self.skips_history.apply(lambda row: row.between(0,7).sum(),axis=1)
+		counts[10] = self.skips_history.apply(lambda row: row.between(0,10).sum(),axis=1)
+		counts[13] = self.skips_history.apply(lambda row: row.between(0,13).sum(),axis=1)
 
 		self.evaluation = pd.concat([self.evaluation,counts],ignore_index=True)
 		self.evaluation = self.evaluation.set_index(pd.RangeIndex(1, len(self.evaluation) + 1))

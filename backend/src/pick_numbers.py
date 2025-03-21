@@ -59,6 +59,8 @@ class Selection:
 		self._odd = 0
 		self._low = 0
 		self._high = 0
+		self.idx = 0
+		self._increase = 0
 
 		# Counter for recommended numbers
 		self._recommended_numbers_selected = 0
@@ -92,14 +94,17 @@ class Selection:
 			else:
 				self._not_recommended_numbers_selected += 1
 	
-	def __update_category(self, condition, counter_name, idx):
-		if condition and getattr(self, counter_name) < 5:
+	def __update_category(self, condition, counter_name):
+		if not condition:
+			return 
+		
+		if getattr(self, counter_name) < 5:
 			setattr(self, counter_name, getattr(self, counter_name) + 1)
 		else:
-			self.__check_idx(idx, removal=True)
+			self.__check_idx(removal=True)
 			raise ValueError(f"The selected number category {counter_name} is complete. Select a new number")
 
-	def __process_number(self, idx: Union[Index | int], number: int | np.int32, n_category: DataFrame):
+	def __process_number(self, number: int | np.int32, n_category: DataFrame):
 		if isinstance(number, np.int32):
 			number = int(number)
 
@@ -108,71 +113,67 @@ class Selection:
 		
 		residue = number % 2
 
-		self.__update_category(residue == 0, "_even", idx)
-		self.__update_category(residue != 0, "_odd", idx)
+		self.__update_category(residue == 0, "_even")
+		self.__update_category(residue != 0, "_odd")
 
-		self.__update_category(number in self.euromillions.low_numbers, "_low", idx)
-		self.__update_category(number in self.euromillions.high_numbers, "_high", idx)
+		self.__update_category(number in self.euromillions.low_numbers, "_low")
+		self.__update_category(number in self.euromillions.high_numbers, "_high")
 
 		self._selected_numbers.append(number)
 		self.__sum_selected_number(number)
 		self.__remove_number(number, n_category)
 
-	def __write_number(self, idx: Union[Index | int], number: Union[np.int32,list,np.ndarray,int], n_category: DataFrame):
+	def __write_number(self, number: Union[np.int32, list, np.ndarray, int], n_category: DataFrame):
 		if isinstance(number, np.ndarray) or isinstance(number, list):
 			for num in number:
-				self.__process_number(num,n_category)
+				self.__process_number(num, n_category)
 		else:
-			self.__process_number(idx, number,n_category)
+			self.__process_number(number, n_category)
 
 	def __check_number(self, number: int):
 		idx_list = self.euromillions.last_draw.loc[self.euromillions.last_draw['number'] == number, 'skips'].tolist()
-		idx = next(iter(idx_list), None)
+		self.idx = next(iter(idx_list), None)
 
-		if idx is None:
+		if self.idx is None:
 			raise ValueError("The list is empty. Please, select a number again")
 		
-		assert isinstance(idx,int), "The answer is not a number. Please, select a new number/index"
+		assert isinstance(self.idx, int), "The answer is not a number. Please, select a new number/index"
 
-		self.__check_idx(idx)
+		self.__check_idx()
 
-		if isinstance(idx, int):
+		if isinstance(self.idx, int):
 			return 
 		else:
 			raise ValueError("There is no validation for the selected number. Please, select a new number")
 
-	def __check_idx(self, idx: int, max_occurrences: int = 2, removal: bool = None):
+	def __check_idx(self, max_occurrences: int = 2, removal: bool = None):
 		if removal:
-			if idx in self._idx_dy:
-				self._idx_dy[idx] -= 1
-				if self._idx_dy[idx] <= 0:
-					del self._idx_dy[idx]
+			if self.idx in self._idx_dy:
+				self._idx_dy[self.idx] -= self._increase
+				if self._idx_dy[self.idx] <= 0:
+					del self._idx_dy[self.idx]
 			return 
 		
-		if idx in self._idx_dy:
-			self._idx_dy[idx] += 1
+		if self.idx in self._idx_dy:
+			self._idx_dy[self.idx] += 1
 		else:
-			self._idx_dy[idx] = 1
+			self._idx_dy[self.idx] = 1
 
-		if self._increase == 1:
-			self._idx_dy[idx] += 1
-		elif self._increase == 2:
-			self._idx_dy[idx] += 2
+		if self.idx != 0 and self._increase == 2:
+			self._idx_dy[self.idx] += 2
 
 		count_reached = sum(1 for v in self._idx_dy.values() if v >= max_occurrences)
 
-		if count_reached >= 2 and self._idx_dy[idx] > max_occurrences:
-			self.__check_idx(idx, removal=True)
-			raise ValueError(f"The index {idx} has been selected {max_occurrences} times. A new index must be selected")
+		if count_reached >= 2 and self._idx_dy[self.idx] > max_occurrences:
+			self.__check_idx(removal=True)
+			raise ValueError(f"The index {self.idx} has been selected {max_occurrences} times. A new index must be selected")
 
+	def __validation(self, type: Literal["idx", "int"], number: int) -> None:
+		assert type in ("idx", "int"), "No valid string validation registered"
 
-	def __validation(self, type: Literal["idx","int"], number: Union[pd.Index, int]) -> None:
-		assert type in ("idx","int"), "No valid string validation registered"
-
-		self._increase = 1
 		if type == "idx":
 			try:
-				self.__check_idx(number)
+				self.__check_idx()
 			except ValueError:
 				raise ValueError(f"No index validation success")
 
@@ -181,42 +182,39 @@ class Selection:
 				self.__check_number(number)
 			except ValueError:
 				raise ValueError(f"No number validation success")
+	
+	def _select_and_write(self, available_numbers: int | list, size: int, n_category: DataFrame):
+		selected_numbers = np.random.choice(available_numbers, size=size, replace=False)[0]
+		self.__validation("idx", self.idx)
+		self.__write_number(selected_numbers, n_category)
 
 	def __operation(self, available_numbers: list, n_category: DataFrame):
+		def _determine_increase(rng: int = None):
+			if len(self._selected_numbers) < 5 and rng == 2:
+				self._increase = 2
+			else:
+				self._increase = 1
+		
 		match self.idx:
 			case 0:
 				rng = 1
 			case _:
 				rng = random.randint(1, 2)
 		
-		self._increase = rng
-		if rng == 2 and len(available_numbers) < 2:
-			selected_number = np.random.choice(available_numbers, size=1, replace=False)[0]
-			self.__validation("idx", self.idx)
-			self.__write_number(self.idx, selected_number, n_category)
+		_determine_increase(rng)
 
-		elif rng == 2 and len(available_numbers) >= 2 and self.rng_count == 0:
-			if self._recommended_numbers_selected < 5:
-				selected_numbers = np.random.choice(available_numbers, size=rng, replace=False)
-				self.__validation("idx", self.idx)
-				self.__write_number(selected_numbers, n_category)
+		if rng == 2:
+			if len(available_numbers) < 2:
+				self._select_and_write(available_numbers, size=1, n_category=n_category)
+			elif (self.rng_count == 0 and self._recommended_numbers_selected < 5) and len(available_numbers) >= 2:
+				self._select_and_write(available_numbers, size=2, n_category=n_category)
 				self.rng_count += 1
 			else:
-				selected_number = np.random.choice(available_numbers,size=1,replace=False)[0]
-				self.__validation("idx",self.idx)
-				self.__write_number(selected_number,n_category)
+				self._select_and_write(available_numbers, size=1, n_category=n_category)
+		elif len(available_numbers) > 0:
+			self._select_and_write(available_numbers, size=1, n_category=n_category)
 
-		elif rng == 2 and self.rng_count > 0:
-			selected_number = np.random.choice(available_numbers,size=1,replace=False)[0]
-			self.__validation("idx", self.idx)
-			self.__write_number(selected_number,n_category)
-
-		elif rng == 1 and len(available_numbers) > 0:
-			selected_number = np.random.choice(available_numbers,size=rng,replace=False)[0]
-			self.__validation("idx", self.idx)
-			self.__write_number(selected_number,n_category)
-
-	def __list_of_numbers(self, n_category: DataFrame) -> tuple[list,DataFrame]:
+	def __list_of_numbers(self, n_category: DataFrame):
 		assert self.numbers is not None and not self.numbers.empty, "There are no available numbers to select. Please check the DataFrame from the last_draw."
 
 		# We locate the row. The list will be created with the numbers in this location
@@ -239,7 +237,7 @@ class Selection:
 
 	def __select_number(self, n_category: DataFrame) -> int:
 		numbers = self.__list_of_numbers(n_category)
-		self.__operation(numbers, self.idx, n_category)
+		self.__operation(numbers, n_category)
 
 	def __select_skip(self, zero_selection: bool = None) -> int:
 		# Filters the indexes following the condition of zero_selection
@@ -252,6 +250,7 @@ class Selection:
 
 		if (idx > allowed_max_idx or (idx < allowed_max_idx and idx > 18)) and self._cold == 0:
 			self._cold += 1
+			return idx
 
 		if allowed_max_idx == 100 and idx > 18 and self._cold > 0:
 			skips = [i for i in skips if i < 19]
@@ -264,9 +263,9 @@ class Selection:
 
 	def first_number(self):
 		try:
-			self.__select_number(0,self.recommended_numbers)
+			self.__select_number(self.recommended_numbers)
 		except ValueError:
-			self.__select_number(0,self.not_recommended_numbers)
+			self.__select_number(self.not_recommended_numbers)
 
 	def suggested_numbers(self):
 		zero_selected = 0
@@ -275,13 +274,13 @@ class Selection:
 			if zero_selected < 3:
 				self.idx = self.__select_skip(True)
 			else:
-				idx = self.__select_skip()
+				self.idx = self.__select_skip()
 
 			count = 0
 			while True:
 				if count < 5:
 					try:
-						self.__select_number(self.idx, self.recommended_numbers)
+						self.__select_number(self.recommended_numbers)
 						break
 					except ValueError:
 						count += 1
@@ -301,10 +300,10 @@ class Selection:
 			zero_selected += 1 if (zero_selected < 3) else 0
 
 		while self._not_recommended_numbers_selected < 4:
-			idx = self.__select_skip()
+			self.idx = self.__select_skip()
 			while True:
 				try:
-					self.__select_number(idx, self.not_recommended_numbers)
+					self.__select_number(self.not_recommended_numbers)
 					break
 				except ValueError:
-					idx = self.__select_skip()
+					self.idx = self.__select_skip()

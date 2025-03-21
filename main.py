@@ -11,7 +11,7 @@ from backend.src import pick_numbers, pick_stars
 from backend.src import numbers, stars
 file_route = 'database/files/'
 
-euromillions = numbers.euromillions
+euromillions = numbers.generate_numbers_criteria()
 lotto = pick_numbers.Selection(euromillions)
 lotto.first_number()
 lotto.suggested_numbers()

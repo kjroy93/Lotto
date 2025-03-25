@@ -12,6 +12,7 @@ from backend.src import numbers, stars
 file_route = 'database/files/'
 
 euromillions = numbers.generate_numbers_criteria()
+euromillions.df.to_csv(f'{file_route}database.csv', index=False)
 lotto = pick_numbers.Selection(euromillions)
 lotto.first_number()
 lotto.suggested_numbers()

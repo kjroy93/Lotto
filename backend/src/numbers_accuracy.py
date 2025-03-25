@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 # Libraries made for this Proyect
-from backend.src.functions import draw_generator
+from backend.utils.functions import draw_generator
 from backend.src.parse import Criteria
 file_route = 'database/simulation_result/'
 

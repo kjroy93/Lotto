@@ -12,7 +12,7 @@ from pandas import DataFrame,Index,Series
 np.set_printoptions(precision=5)
 
 # Libraries made for this Proyect
-from .functions import games_7, games_12, Memoize
+from backend.utils.functions import games_7, games_12, Memoize
 from database.structure import database
 
 # Main Object - Super Class

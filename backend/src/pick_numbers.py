@@ -295,6 +295,29 @@ class Selection:
 	def suggested_numbers(self):
 		zero_selected = 0
 
+		answer = input("Do you wish to give me some numbers?[y/n]: ").strip().lower()
+
+		if answer == 'y':
+			while True:
+				try:
+					user_input = input("Give me the numbers now (separated by spaces): ")
+					numbers = list(map(int, user_input.split()))
+					break
+				except ValueError:
+					print("Input error. Please select only numbers separated by spaces")
+			for i in numbers:
+				zero = self.df_skips[self.df_skips['7'] == 0].index
+				self.idx = self._df_values[self._df_values['number'].apply(lambda x: i in x)].index[0]
+				if self.recommended_numbers['numbers'].isin([i]).any():
+					self.__operation([i], self.recommended_numbers)
+				else:
+					self.__operation([i], self.not_recommended_numbers)
+				if (self.idx in zero):
+					zero_selected += 1
+				del (self.idx)
+		else:
+			print("I will select all the numbers")
+
 		while self._recommended_numbers_selected < 6:
 			if zero_selected < 3:
 				self.idx = self.__select_skip(True)

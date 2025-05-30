@@ -306,10 +306,15 @@ class Selection:
 				except ValueError:
 					print("Input error. Please select only numbers separated by spaces")
 			for i in numbers:
+				zero = self.df_skips[self.df_skips['7'] == 0].index
+				self.idx = self._df_values[self._df_values['number'].apply(lambda x: i in x)].index[0]
 				if self.recommended_numbers['numbers'].isin([i]).any():
 					self.__operation([i], self.recommended_numbers)
 				else:
 					self.__operation([i], self.not_recommended_numbers)
+				if (self.idx in zero):
+					zero_selected += 1
+				del (self.idx)
 		else:
 			print("I will select all the numbers")
 

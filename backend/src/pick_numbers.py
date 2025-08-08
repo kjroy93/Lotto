@@ -295,7 +295,7 @@ class Selection:
 	def suggested_numbers(self):
 		zero_selected = 0
 
-		answer = input("Do you wish to give me some numbers?[y/n]: ").strip().lower()
+		answer = input("Do you wish to give me some numbers? [y/n]: ").strip().lower()
 
 		if answer == 'y':
 			while True:

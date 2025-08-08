@@ -1,7 +1,7 @@
 """This file gives you the numbers to be selected"""
 
 # Libraries made for this Proyect
-from .parse import Criteria
+from backend.src.parse import Criteria
 
 def generate_numbers_criteria():
 	euromillions = Criteria()

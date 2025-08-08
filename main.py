@@ -7,11 +7,11 @@ import itertools
 import pandas as pd
 
 # Libraries made for this Proyect
-from backend.src import pick_numbers, pick_stars
-from backend.src import numbers, stars
+from backend.src import lotto_numbers, pick_numbers, pick_stars
+from backend.src import stars
 file_route = 'database/files/'
 
-euromillions = numbers.generate_numbers_criteria()
+euromillions = lotto_numbers.generate_numbers_criteria()
 euromillions.df.to_csv(f'{file_route}database.csv', index=False)
 lotto = pick_numbers.Selection(euromillions)
 # lotto.first_number()
@@ -36,7 +36,7 @@ picking_odd = []
 for n, ticket in enumerate(combinations):
 	value = filter(lambda x: x % 2 != 0, ticket)
 	amount = sum(1 for x in list(value) if x > 0)
-	if amount == 3:
+	if amount == 2:
 		picking_odd.append(n)
 
 buy = []

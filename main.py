@@ -36,7 +36,7 @@ picking_odd = []
 for n, ticket in enumerate(combinations):
 	value = filter(lambda x: x % 2 != 0, ticket)
 	amount = sum(1 for x in list(value) if x > 0)
-	if amount == 2:
+	if amount == 3:
 		picking_odd.append(n)
 
 buy = []

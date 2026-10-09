@@ -66,6 +66,7 @@ def cleaning(data: DataFrame) -> DataFrame:
 	data.loc[1088, update_dict.keys()] = update_dict.values()
 
 	# Because of error in the webpage, manual temporary fix to eliminate duplicated draw
+	data.drop(1906, inplace=True)
 	data.drop(1803, inplace=True)
 	data.reset_index(drop=True, inplace=True)
 	data['draw'] = range(1, len(data) + 1)
